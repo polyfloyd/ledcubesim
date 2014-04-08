@@ -111,7 +111,9 @@ func InitGL() {
 	gl.ClearColor(BACKGROUND, BACKGROUND, BACKGROUND, 1.0)
 
 	sphereBuilder := mesh.GenIcosahedron(2)
-	sphere, _ = sphereBuilder.Build(nil)
+	m, err := mesh.Build(sphereBuilder)
+	util.Check(err)
+	sphere = m[0]
 	sphere.Load()
 
 	vert, err := shader.CreateVertexObject(`
@@ -162,6 +164,7 @@ func InitGL() {
 	matrixUniformLocation = ledShader.UniLoc("mat_modviewproj")
 	colorUniformLocation  = ledShader.UniLoc("color_led")
 
+	sphere.Enable()
 	ledShader.Enable()
 }
 
