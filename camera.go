@@ -15,7 +15,7 @@ type CubeCamera struct {
 
 func NewCubeCamera() *CubeCamera {
 	return &CubeCamera{
-		Zoom: -20,
+		Zoom: -80,
 		mat:  *matreex.NewElement(),
 	}
 }
@@ -38,7 +38,7 @@ func (cam *CubeCamera) MatElement() *matreex.Element {
 }
 
 func (cam *CubeCamera) GetFovy() float32 {
-	return 90
+	return FOVY
 }
 
 func (cam *CubeCamera) GetZNear() float32 {
