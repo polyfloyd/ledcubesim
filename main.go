@@ -37,16 +37,13 @@ var (
 	ledTransforms = make([]matreex.Element, CUBE_TOTAL_VOXELS)
 
 	frontBuffer = make([]float32, CUBE_TOTAL_VOXELS * 3)
-
-	matrixUniformLocation gl.UniformLocation
-	colorUniformLocation  gl.UniformLocation
 )
 
 func main() {
 	irix.MustGLExt("GL_ARB_vertex_buffer_object")
 
 	irix.FrameCap = 60
-	irix.ShowFPS = true
+	irix.ShowFPS  = true
 
 	input.OnKeyPress(glfw.KeyF4, func(_ glfw.ModifierKey) {
 		irix.Wireframe = !irix.Wireframe
@@ -116,6 +113,7 @@ func InitGL() {
 	sphere = m[0]
 	sphere.Load()
 
+	shader.PrintSource = true
 	vert, err := shader.CreateVertexObject(`
 		#version 330 core
 
@@ -123,7 +121,7 @@ func InitGL() {
 		{{.vert_normal    }}
 		{{.vert_tex2      }}
 		{{.vert_color     }}
-		uniform mat4 mat_modviewproj;
+		{{.mat_modviewproj}}
 
 		out vec3 frag_normal;
 		out vec2 frag_tex2;
@@ -161,11 +159,8 @@ func InitGL() {
 	ledShader, err = shader.Link(true, vert, frag)
 	util.Check(err)
 
-	matrixUniformLocation = ledShader.UniLoc("mat_modviewproj")
-	colorUniformLocation  = ledShader.UniLoc("color_led")
-
-	sphere.Enable()
 	ledShader.Enable()
+	sphere.Enable()
 }
 
 func Cycle(delta float32) {
@@ -180,8 +175,8 @@ func Cycle(delta float32) {
 
 	c := 0
 	for _, mat := range ledTransforms {
-		matrixUniformLocation.UniformMatrix4f(false, (*[16]float32)(&mat.Abs))
-		colorUniformLocation.Uniform3f(
+		ledShader.MatModviewProj(&mat.Abs)
+		ledShader.Uniform["color_led"].Uniform3f(
 			frontBuffer[c],
 			frontBuffer[c + 1],
 			frontBuffer[c + 2],
