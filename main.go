@@ -11,6 +11,9 @@ func main() {
 			"length": 16,
 			"height": 16
 		},
+		"net": {
+			"listen": ":54746"
+		},
 		"ui": {
 			"background": 0.12,
 			"spacing":    8.0,

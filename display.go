@@ -17,7 +17,6 @@ var (
 	DisplayBackBuffer []float32
 
 	frontBuffer      []float32
-	shouldSwapBuffer = false
 
 	cam           = NewCubeCamera()
 	projection    = matreex.NewElement()
@@ -27,7 +26,11 @@ var (
 )
 
 func SwapDisplayBuffer() {
-	shouldSwapBuffer = true
+	util.RunGLAsync(func() {
+		t := DisplayBackBuffer
+		DisplayBackBuffer = frontBuffer
+		frontBuffer = t
+	})
 }
 
 func StartDisplay(title string) {
@@ -158,12 +161,6 @@ func InitGL() {
 }
 
 func UpdateDisplay(delta float32) {
-	if shouldSwapBuffer {
-		t := DisplayBackBuffer
-		DisplayBackBuffer = frontBuffer
-		frontBuffer = t
-		shouldSwapBuffer = false
-	}
 	projection.LoadProjection(
 		cam.GetFovy(),
 		irix.WindowAspect(),

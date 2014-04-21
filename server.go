@@ -6,7 +6,7 @@ import (
 )
 
 func StartServer() {
-	listener, err := net.Listen("tcp", ":54746")
+	listener, err := net.Listen("tcp", Config.String("net.listen"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -24,28 +24,34 @@ func communicate(conn net.Conn) {
 	log.Printf("%v connected", conn.RemoteAddr())
 
 	buf := make([]byte, TotalVoxels * 3)
-
 	for {
-		read, err := conn.Read(buf)
+		read, err := conn.Read(buf[:3])
 		if err != nil {
 			log.Printf("%v disconnected", conn.RemoteAddr())
 			break
 		}
-		if read >= 3 {
-			payload := buf[3:read]
-			switch string(buf[:3]) {
-			case "frm":
-				for i, b := range payload {
-					if i > TotalVoxels * 3 {
-						break
-					}
-					DisplayBackBuffer[i] = float32(b) / 256
+		if read != 3 {
+			conn.Write([]byte("err"))
+			log.Println("Client did not sent 3 command bytes")
+			continue
+		}
+		switch string(buf[:3]) {
+		case "frm":
+			for completed := 0; completed < TotalVoxels * 3; {
+				read, err := conn.Read(buf)
+				if err != nil {
+					log.Printf("%v disconnected", conn.RemoteAddr())
+					break
 				}
-			case "swp":
-				SwapDisplayBuffer()
-			default:
-				conn.Write([]byte("Invalid command\n"))
+				for i, b := range buf[:read] {
+					DisplayBackBuffer[completed+i] = float32(b) / 256
+				}
+				completed += read
 			}
+		case "swp":
+			SwapDisplayBuffer()
+		default:
+			conn.Write([]byte("err"))
 		}
 	}
 }
