@@ -1,20 +1,27 @@
 package main
 
-const (
-	CUBE_WIDTH  = 16
-	CUBE_LENGTH = 16
-	CUBE_HEIGHT = 16
+import "polyfloyd/irix/util"
 
-	BACKGROUND   = 0.12
-	LED_DISTANCE = 8
-
-	ZOOM_ACCELERATION = 8
-	FOVY              = 45.0
-
-	RENDER_OFF = false
-)
+var Config = util.Config{}
 
 func main() {
+	err := Config.LoadString(`{
+		"cube": {
+			"width":  16,
+			"length": 16,
+			"height": 16
+		},
+		"ui": {
+			"background": 0.12,
+			"spacing":    8.0,
+			"zoomAccel":  8.0,
+			"showOff":    true,
+			"fovy":       45.0
+		}
+	}`)
+	if err != nil {
+		panic(err)
+	}
 	go StartServer()
 	StartDisplay("A Simulator For LED Cubes")
 }

@@ -12,21 +12,18 @@ import (
 	util    "polyfloyd/irix/util"
 )
 
-const (
-	CUBE_TOTAL_VOXELS = CUBE_WIDTH * CUBE_LENGTH * CUBE_HEIGHT
-)
-
 var (
-	cam       = NewCubeCamera()
-	sphere    *mesh.Mesh
-	ledShader *shader.Program
+	TotalVoxels       int
+	DisplayBackBuffer []float32
 
-	projection    = matreex.NewElement()
-	ledTransforms = make([]matreex.Element, CUBE_TOTAL_VOXELS)
-
+	frontBuffer      []float32
 	shouldSwapBuffer = false
-	DisplayBackBuffer = make([]float32, CUBE_TOTAL_VOXELS * 3)
-	frontBuffer       = make([]float32, CUBE_TOTAL_VOXELS * 3)
+
+	cam           = NewCubeCamera()
+	projection    = matreex.NewElement()
+	sphere        *mesh.Mesh
+	ledShader     *shader.Program
+	ledTransforms []matreex.Element
 )
 
 func SwapDisplayBuffer() {
@@ -34,50 +31,59 @@ func SwapDisplayBuffer() {
 }
 
 func StartDisplay(title string) {
+	width  := Config.Int("cube.width")
+	length := Config.Int("cube.length")
+	height := Config.Int("cube.height")
+	TotalVoxels       = width * length * height
+	DisplayBackBuffer = make([]float32, TotalVoxels * 3)
+	frontBuffer       = make([]float32, TotalVoxels * 3)
+	ledTransforms     = make([]matreex.Element, TotalVoxels)
+
 	irix.UseVSync(true)
 
 	input.OnMouseScroll(func(dx, dy float64) {
-		cam.Zoom += float32(dy) * ZOOM_ACCELERATION
+		cam.Zoom += float32(dy) * Config.Float32("ui.zoomAccel")
 	})
 	input.OnMouseDrag(glfw.MouseButtonLeft, func(x, y float64) {
 		cam.RotX += float32(x / 10)
+		if cam.RotX > 90 {
+			cam.RotX = 90
+		} else if cam.RotX < -90 {
+			cam.RotX = -90
+		}
 		cam.RotY += float32(y / 10)
+		if cam.RotY > 90 {
+			cam.RotY = 90
+		} else if cam.RotY < -90 {
+			cam.RotY = -90
+		}
 	})
 
-
-	colors := [][]float32{
-		{ 0, 0, 1 },
-		{ 0, 1, 0 },
-		{ 0, 1, 1 },
-		{ 1, 0, 0 },
-		{ 0, 0, 0 },
-	}
-	for i := 0; i < CUBE_TOTAL_VOXELS*3; i += 3 {
-		c := colors[(i/3) % len(colors)]
-		frontBuffer[i+0] = c[0]
-		frontBuffer[i+1] = c[1]
-		frontBuffer[i+2] = c[2]
+	for i := 0; i < len(frontBuffer); i += 3 {
+		frontBuffer[i]     = 0.0
+		frontBuffer[i + 1] = 0.4
+		frontBuffer[i + 2] = 1.0
 	}
 
-
+	spacing := Config.Float32("ui.spacing")
 	center := matreex.NewElement()
 	center.Translate(
-		-(1 + LED_DISTANCE*CUBE_WIDTH /2),
-		-(1 + LED_DISTANCE*CUBE_HEIGHT/2),
-		-(1 + LED_DISTANCE*CUBE_LENGTH/2),
+		-(spacing*float32(width)/2  - spacing/2),
+		-(spacing*float32(height)/2 - spacing/2),
+		-(spacing*float32(length)/2 - spacing/2),
 		nil,
 	);
 	camMat := cam.MatElement()
 	camMat.AddChild(center)
-	for x := 0; x < CUBE_WIDTH; x++ {
-		for y := 0; y < CUBE_HEIGHT; y++ {
-			for z := 0; z < CUBE_LENGTH; z++ {
-				mat := &ledTransforms[x*CUBE_HEIGHT*CUBE_LENGTH + y*CUBE_LENGTH + z]
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			for z := 0; z < length; z++ {
+				mat := &ledTransforms[x*height*length + y*length + z]
 				mat.LoadIdentity()
 				mat.Translate(
-					float32(x * LED_DISTANCE),
-					float32(y * LED_DISTANCE),
-					float32(z * LED_DISTANCE),
+					float32(x) * spacing,
+					float32(y) * spacing,
+					float32(z) * spacing,
 					nil,
 				)
 				center.AddChild(mat)
@@ -93,7 +99,8 @@ func StartDisplay(title string) {
 }
 
 func InitGL() {
-	gl.ClearColor(BACKGROUND, BACKGROUND, BACKGROUND, 1.0)
+	bg := gl.GLclampf(Config.Float32("ui.background"))
+	gl.ClearColor(bg, bg, bg, 1.0)
 
 	m, err := mesh.Build(mesh.GenIcosahedron(2))
 	util.Check(err)
@@ -167,11 +174,12 @@ func UpdateDisplay(delta float32) {
 	cam.UpdateLogic(delta)
 
 	colorUniform := ledShader.Uniform["color_led"]
+	showOff := Config.Bool("ui.showOff")
 	for i, mat := range ledTransforms {
 		r := frontBuffer[i*3]
 		g := frontBuffer[i*3 + 1]
 		b := frontBuffer[i*3 + 2]
-		if !RENDER_OFF && (r==0 && g==0 && b==0) {
+		if !showOff && (r==0 && g==0 && b==0) {
 			continue
 		}
 		ledShader.MatModviewProj(&mat.Abs)
@@ -213,7 +221,7 @@ func (cam *CubeCamera) MatElement() *matreex.Element {
 }
 
 func (cam *CubeCamera) GetFovy() float32 {
-	return FOVY
+	return Config.Float32("ui.fovy")
 }
 
 func (cam *CubeCamera) GetZNear() float32 {

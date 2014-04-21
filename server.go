@@ -5,8 +5,6 @@ import (
 	"net"
 )
 
-var isConnected = false
-
 func StartServer() {
 	listener, err := net.Listen("tcp", ":54746")
 	if err != nil {
@@ -18,26 +16,19 @@ func StartServer() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if isConnected {
-			conn.Write([]byte("A pink unicorn is already connected\n"))
-			conn.Close()
-		} else{
-			go communicate(conn)
-		}
+		go communicate(conn)
 	}
 }
 
 func communicate(conn net.Conn) {
-	isConnected = true
-	log.Printf("Connected to %v", conn.(*net.TCPConn).RemoteAddr())
+	log.Printf("%v connected", conn.RemoteAddr())
 
-	buf := make([]byte, CUBE_TOTAL_VOXELS * 3)
+	buf := make([]byte, TotalVoxels * 3)
 
 	for {
 		read, err := conn.Read(buf)
 		if err != nil {
-			isConnected = false
-			log.Printf("Client disconnected")
+			log.Printf("%v disconnected", conn.RemoteAddr())
 			break
 		}
 		if read >= 3 {
@@ -45,7 +36,7 @@ func communicate(conn net.Conn) {
 			switch string(buf[:3]) {
 			case "frm":
 				for i, b := range payload {
-					if i > CUBE_TOTAL_VOXELS * 3 {
+					if i > TotalVoxels * 3 {
 						break
 					}
 					DisplayBackBuffer[i] = float32(b) / 256
