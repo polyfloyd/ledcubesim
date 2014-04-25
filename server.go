@@ -25,23 +25,23 @@ func communicate(conn net.Conn) {
 
 	buf := make([]byte, TotalVoxels * 3)
 	for {
-		read, err := conn.Read(buf[:3])
+		_, err := conn.Read(buf[:3])
 		if err != nil {
 			log.Printf("%v disconnected", conn.RemoteAddr())
 			break
 		}
-		if read != 3 {
-			conn.Write([]byte("err"))
-			log.Println("Client did not sent 3 command bytes")
-			continue
-		}
 		switch string(buf[:3]) {
 		case "frm":
 			for completed := 0; completed < TotalVoxels * 3; {
-				read, err := conn.Read(buf)
+				read, err := conn.Read(buf[:TotalVoxels*3 - completed])
 				if err != nil {
 					log.Printf("%v disconnected", conn.RemoteAddr())
 					break
+				}
+				if read + completed > TotalVoxels * 3 {
+					conn.Close()
+					log.Printf("%v disconnected (frm overflow %v)", conn.RemoteAddr(), (completed+read) - TotalVoxels*3)
+					return
 				}
 				for i, b := range buf[:read] {
 					DisplayBackBuffer[completed+i] = float32(b) / 256
@@ -51,7 +51,7 @@ func communicate(conn net.Conn) {
 		case "swp":
 			SwapDisplayBuffer()
 		default:
-			conn.Write([]byte("err"))
+			conn.Write([]byte("err\n"))
 		}
 	}
 }
