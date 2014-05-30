@@ -2,13 +2,11 @@
 
 import ledcube
 import os
-import socket
 import time
 
-sock = ledcube.connect()
+cube = ledcube.Cube()
 
 while 1:
-	sock.send(b"frm")
-	sock.send(os.urandom(16**3 * 3))
-	sock.send(b"swp")
+	cube.frame(os.urandom(16**3 * 3))
+	cube.swap()
 	time.sleep(.5)
