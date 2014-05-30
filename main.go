@@ -2,26 +2,12 @@ package main
 
 import "polyfloyd/irix/util"
 
+const INFO = "PolyFloyd's LEDCube Simulator v0.1\n"
+
 var Config = util.Config{}
 
 func main() {
-	err := Config.LoadString(`{
-		"cube": {
-			"width":  16,
-			"length": 16,
-			"height": 16
-		},
-		"net": {
-			"listen": ":54746"
-		},
-		"ui": {
-			"background": 0.12,
-			"spacing":    8.0,
-			"zoomAccel":  8.0,
-			"showOff":    true,
-			"fovy":       45.0
-		}
-	}`)
+	err := Config.LoadFile("./config.json")
 	if err != nil {
 		panic(err)
 	}

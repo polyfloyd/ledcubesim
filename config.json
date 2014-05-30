@@ -1,0 +1,15 @@
+{
+	"listen": ":54746",
+	"cube": {
+		"width":  16,
+		"length": 16,
+		"height": 16
+	},
+	"ui": {
+		"background": 0.12,
+		"fovy":       45.0,
+		"showOff":    true,
+		"spacing":    8.0,
+		"zoomAccel":  8.0
+	}
+}
