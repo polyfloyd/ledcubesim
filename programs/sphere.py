@@ -21,9 +21,9 @@ for u in range(-acc, acc):
 		z = math.sin(u * math.pi + math.pi/2)
 
 		i = cube.xyz((
-			int((.5 + x/2) * 15),
-			int((.5 + y/2) * 15),
-			int((.5 + z/2) * 15),
+			int((.5 + x/2) * 15.5),
+			int((.5 + y/2) * 15.5),
+			int((.5 + z/2) * 15.5),
 		))
 
 		frame[i+0] = 0

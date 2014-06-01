@@ -8,7 +8,6 @@
 	"ui": {
 		"background": 0.12,
 		"fovy":       45.0,
-		"showOff":    true,
 		"spacing":    8.0,
 		"zoomAccel":  8.0
 	}

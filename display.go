@@ -13,10 +13,12 @@ import (
 )
 
 var (
+	showOff = true
+
 	TotalVoxels       int
 	DisplayBackBuffer []float32
 
-	frontBuffer      []float32
+	frontBuffer []float32
 
 	cam           = NewCubeCamera()
 	projection    = matreex.NewElement()
@@ -44,6 +46,9 @@ func StartDisplay(title string) {
 
 	irix.UseVSync(true)
 
+	input.OnKeyPress(glfw.KeyS, func(_ glfw.ModifierKey) {
+		showOff = !showOff
+	})
 	input.OnMouseScroll(func(dx, dy float64) {
 		cam.Zoom += float32(dy) * Config.Float32("ui.zoomAccel")
 	})
@@ -171,7 +176,6 @@ func UpdateDisplay(delta float32) {
 	cam.UpdateLogic(delta)
 
 	colorUniform := ledShader.Uniform["color_led"]
-	showOff := Config.Bool("ui.showOff")
 	for i, mat := range ledTransforms {
 		r := frontBuffer[i*3]
 		g := frontBuffer[i*3 + 1]
