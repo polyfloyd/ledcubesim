@@ -49,6 +49,11 @@ func StartDisplay(title string) {
 	input.OnKeyPress(glfw.KeyS, func(_ glfw.ModifierKey) {
 		showOff = !showOff
 	})
+	input.OnKeyPress(glfw.KeyR, func(_ glfw.ModifierKey) {
+		cam.RotX = 0
+		cam.RotY = 0
+		cam.Zoom = -160
+	})
 	input.OnMouseScroll(func(dx, dy float64) {
 		cam.Zoom += float32(dy) * Config.Float32("ui.zoomAccel")
 	})
