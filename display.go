@@ -112,7 +112,7 @@ func StartDisplay(title string) {
 }
 
 func InitGL() {
-	bg := gl.GLclampf(Config.Float32("ui.background"))
+	bg := Config.Float32("ui.background")
 	gl.ClearColor(bg, bg, bg, 1.0)
 
 	m, err := mesh.Build(mesh.GenIcosahedron(2))
