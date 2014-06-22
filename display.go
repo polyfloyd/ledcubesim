@@ -2,7 +2,7 @@ package main
 
 import (
 	glfw    "github.com/go-gl/glfw3"
-	gl      "github.com/polyfloyd/gl"
+	gl      "github.com/polyfloyd/go-gl"
 	irix    "polyfloyd/irix"
 	input   "polyfloyd/irix/input"
 	xmath   "polyfloyd/irix/math"
