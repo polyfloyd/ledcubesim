@@ -31,7 +31,7 @@ func communicate(conn net.Conn) {
 			break
 		}
 		switch string(buf[:3]) {
-		case "inf":
+		case "nfo":
 			conn.Write([]byte(INFO))
 		case "frm":
 			for completed := 0; completed < TotalVoxels * 3; {
@@ -47,8 +47,6 @@ func communicate(conn net.Conn) {
 			}
 		case "swp":
 			SwapDisplayBuffer()
-		default:
-			conn.Write([]byte("err\n"))
 		}
 	}
 }
