@@ -1,3 +1,5 @@
-ledcubesim
+/ledcubesim
 __pycache__
-*.pyc
+**.pyc
+**.swp
+**~
