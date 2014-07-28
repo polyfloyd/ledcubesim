@@ -36,10 +36,7 @@ func SwapDisplayBuffer() {
 }
 
 func StartDisplay(title string) {
-	width  := Config.Int("cube.width")
-	length := Config.Int("cube.length")
-	height := Config.Int("cube.height")
-	TotalVoxels       = width * length * height
+	TotalVoxels       = CUBE_WIDTH * CUBE_LENGTH * CUBE_HEIGHT
 	DisplayBackBuffer = make([]float32, TotalVoxels * 3)
 	frontBuffer       = make([]float32, TotalVoxels * 3)
 	ledTransforms     = make([]matreex.Element, TotalVoxels)
@@ -55,7 +52,7 @@ func StartDisplay(title string) {
 		cam.Zoom = -160
 	})
 	input.OnMouseScroll(func(dx, dy float64) {
-		cam.Zoom += float32(dy) * Config.Float32("ui.zoomAccel")
+		cam.Zoom += float32(dy) * UI_ZOOMACCEL
 	})
 	input.OnMouseDrag(glfw.MouseButtonLeft, func(x, y float64) {
 		cam.RotX += float32(x / 10)
@@ -78,25 +75,24 @@ func StartDisplay(title string) {
 		frontBuffer[i + 2] = 1.0
 	}
 
-	spacing := Config.Float32("ui.spacing")
 	center := matreex.NewElement()
 	center.Translate(
-		-(spacing*float32(width)/2  - spacing/2),
-		-(spacing*float32(height)/2 - spacing/2),
-		-(spacing*float32(length)/2 - spacing/2),
+		-(UI_SPACING*float32(CUBE_WIDTH)/2  - UI_SPACING/2),
+		-(UI_SPACING*float32(CUBE_HEIGHT)/2 - UI_SPACING/2),
+		-(UI_SPACING*float32(CUBE_LENGTH)/2 - UI_SPACING/2),
 		nil,
 	);
 	camMat := cam.MatElement()
 	camMat.AddChild(center)
-	for x := 0; x < width; x++ {
-		for y := 0; y < height; y++ {
-			for z := 0; z < length; z++ {
-				mat := &ledTransforms[x*height*length + y*length + z]
+	for x := 0; x < CUBE_WIDTH; x++ {
+		for y := 0; y < CUBE_HEIGHT; y++ {
+			for z := 0; z < CUBE_LENGTH; z++ {
+				mat := &ledTransforms[x*CUBE_HEIGHT*CUBE_LENGTH + y*CUBE_LENGTH + z]
 				mat.LoadIdentity()
 				mat.Translate(
-					float32(x) * spacing,
-					float32(y) * spacing,
-					float32(z) * spacing,
+					float32(x) * UI_SPACING,
+					float32(y) * UI_SPACING,
+					float32(z) * UI_SPACING,
 					nil,
 				)
 				center.AddChild(mat)
@@ -112,8 +108,7 @@ func StartDisplay(title string) {
 }
 
 func InitGL() {
-	bg := Config.Float32("ui.background")
-	gl.ClearColor(bg, bg, bg, 1.0)
+	gl.ClearColor(0.12, 0.12, 0.12, 1.0)
 
 	m, err := mesh.Build(mesh.GenIcosahedron(2))
 	util.Check(err)
@@ -227,7 +222,7 @@ func (cam *CubeCamera) MatElement() *matreex.Element {
 }
 
 func (cam *CubeCamera) GetFovy() float32 {
-	return Config.Float32("ui.fovy")
+	return UI_FOVY
 }
 
 func (cam *CubeCamera) GetZNear() float32 {

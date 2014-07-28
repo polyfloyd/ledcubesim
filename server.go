@@ -6,7 +6,7 @@ import (
 )
 
 func StartServer() {
-	listener, err := net.Listen("tcp", Config.String("listen"))
+	listener, err := net.Listen("tcp", SERVER_LISTEN)
 	if err != nil {
 		log.Fatal(err)
 	}
