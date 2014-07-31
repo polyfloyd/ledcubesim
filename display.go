@@ -1,7 +1,6 @@
 package main
 
 import (
-	"math"
 	"runtime"
 	gl     "github.com/polyfloyd/go-gl"
 	glfw   "github.com/go-gl/glfw3"
@@ -19,8 +18,7 @@ type Display struct {
 	cubeLength  int
 	cubeWidth   int
 
-	camRotX float32
-	camRotY float32
+	camRot  mathgl.Quat
 	camZoom float32
 
 	frontBuffer       []float32
@@ -31,14 +29,15 @@ type Display struct {
 }
 
 func NewDisplay(w, h, l int) *Display {
-	return &Display{
-		camZoom:     -160,
+	disp := &Display{
 		cubeHeight:  h,
 		cubeLength:  l,
 		cubeWidth:   w,
 		Buffer:      make([]float32, w*h*l * 3),
 		frontBuffer: make([]float32, w*h*l * 3),
 	}
+	disp.ResetView()
+	return disp
 }
 
 func (disp *Display) Start() {
@@ -55,26 +54,14 @@ func (disp *Display) Start() {
 		disp.HideOff = !disp.HideOff
 	})
 	input.OnKeyPress(glfw.KeyR, func(_ glfw.ModifierKey) {
-		disp.camRotX = 0
-		disp.camRotY = 0
-		disp.camZoom = -160
+		disp.ResetView()
 	})
 	input.OnMouseScroll(func(dx, dy float64) {
 		disp.camZoom += float32(dy) * UI_ZOOMACCEL
 	})
 	input.OnMouseDrag(glfw.MouseButtonLeft, func(x, y float64) {
-		disp.camRotX += float32(x) / UI_DRAGDIV
-		if disp.camRotX > math.Pi/2 {
-			disp.camRotX = math.Pi/2
-		} else if disp.camRotX < -math.Pi/2 {
-			disp.camRotX = -math.Pi/2
-		}
-		disp.camRotY += float32(y) / UI_DRAGDIV
-		if disp.camRotY > math.Pi/2 {
-			disp.camRotY = math.Pi/2
-		} else if disp.camRotY < -math.Pi/2 {
-			disp.camRotY = -math.Pi/2
-		}
+		disp.camRot = mathgl.QuatRotate(float32(x) / UI_DRAGDIV, mathgl.Vec3{0, 1, 0}).Mul(disp.camRot)
+		disp.camRot = mathgl.QuatRotate(float32(y) / UI_DRAGDIV, mathgl.Vec3{1, 0, 0}).Mul(disp.camRot)
 	})
 
 	if !glfw.Init() {
@@ -138,8 +125,7 @@ func (disp *Display) render() {
 	view := func() mathgl.Mat4 {
 		m := mathgl.Ident4()
 		m = m.Mul4(mathgl.Translate3D(0, 0, disp.camZoom))
-		m = m.Mul4(mathgl.HomogRotate3DY(disp.camRotX))
-		m = m.Mul4(mathgl.HomogRotate3DX(disp.camRotY))
+		m = m.Mul4(disp.camRot.Mat4())
 		return m
 	}()
 
@@ -197,6 +183,11 @@ func (disp *Display) initGL() error {
 
 func (disp *Display) SwapBuffers() {
 	disp.shouldSwapBuffers = true
+}
+
+func (disp *Display) ResetView() {
+	disp.camRot  = mathgl.QuatIdent()
+	disp.camZoom = -160
 }
 
 const SHADER_SRC_VX = `
