@@ -4,7 +4,6 @@ import (
 	"runtime"
 	gl     "github.com/polyfloyd/go-gl"
 	glfw   "github.com/go-gl/glfw3"
-	input  "polyfloyd/irix/input"
 	mathgl "github.com/go-gl/mathgl/mgl32"
 	mesh   "polyfloyd/irix/mesh"
 	shader "polyfloyd/irix/shader"
@@ -50,42 +49,7 @@ func (disp *Display) Start() {
 		disp.frontBuffer[i + 2] = 1.0
 	}
 
-	input.OnKeyPress(glfw.KeyS, func(_ glfw.ModifierKey) {
-		disp.HideOff = !disp.HideOff
-	})
-	input.OnKeyPress(glfw.KeyR, func(_ glfw.ModifierKey) {
-		disp.ResetView()
-	})
-	input.OnMouseScroll(func(dx, dy float64) {
-		disp.camZoom += float32(dy) * UI_ZOOMACCEL
-	})
-	input.OnMouseDrag(glfw.MouseButtonLeft, func(x, y float64) {
-		disp.camRot = mathgl.QuatRotate(float32(x) / UI_DRAGDIV, mathgl.Vec3{0, 1, 0}).Mul(disp.camRot)
-		disp.camRot = mathgl.QuatRotate(float32(y) / UI_DRAGDIV, mathgl.Vec3{1, 0, 0}).Mul(disp.camRot)
-	})
-
-	if !glfw.Init() {
-		panic("Can't init GLFW!")
-	}
-	glfw.SwapInterval(1)
-
-	var err error
-	disp.win, err = glfw.CreateWindow(UI_WIN_W, UI_WIN_H, INFO, nil, nil)
-	if err != nil {
-		panic(err)
-	}
-	disp.win.MakeContextCurrent()
-
-	resize := func(w, h int) {
-		gl.Viewport(0, 0, w, h)
-	}
-	disp.win.SetSizeCallback(func(win *glfw.Window, w, h int) {
-		resize(w, h)
-	})
-	input.SetInputWindow(disp.win)
-	resize(disp.win.GetSize())
-
-	if err := disp.initGL(); err != nil {
+	if err := disp.init(); err != nil {
 		panic(err)
 	}
 
@@ -156,9 +120,56 @@ func (disp *Display) render() {
 	}
 }
 
-func (disp *Display) initGL() error {
-	if err := gl.Init(); err != nil { return err }
+func (disp *Display) init() error {
+	if !glfw.Init() {
+		panic("Can't init GLFW!")
+	}
+	{
+		var err error
+		disp.win, err = glfw.CreateWindow(UI_WIN_W, UI_WIN_H, INFO, nil, nil)
+		if err != nil {
+			panic(err)
+		}
+	}
+	disp.win.MakeContextCurrent()
+	resize := func(w, h int) { gl.Viewport(0, 0, w, h) }
+	disp.win.SetSizeCallback(func(win *glfw.Window, w, h int) {
+		resize(w, h)
+	})
+	resize(disp.win.GetSize())
+	glfw.SwapInterval(1)
 
+	var dragButtonDown bool
+	var mousePosLastX float64
+	var mousePosLastY float64
+	disp.win.SetCursorPositionCallback(func(_ *glfw.Window, x, y float64) {
+		deltaX := x - mousePosLastX
+		deltaY := y - mousePosLastY
+		mousePosLastX = x
+		mousePosLastY = y
+		if (dragButtonDown) {
+			disp.camRot = mathgl.QuatRotate(float32(deltaX) / UI_DRAGDIV, mathgl.Vec3{0, 1, 0}).Mul(disp.camRot)
+			disp.camRot = mathgl.QuatRotate(float32(deltaY) / UI_DRAGDIV, mathgl.Vec3{1, 0, 0}).Mul(disp.camRot)
+		}
+	})
+	disp.win.SetMouseButtonCallback(func(_ *glfw.Window, button glfw.MouseButton,
+		action glfw.Action, mods glfw.ModifierKey) {
+		dragButtonDown = action == glfw.Press && button == glfw.MouseButtonLeft
+	})
+	disp.win.SetScrollCallback(func(_ *glfw.Window, dx, dy float64) {
+		disp.camZoom += float32(dy) * UI_ZOOMACCEL
+	})
+	disp.win.SetKeyCallback(func(_ *glfw.Window, key glfw.Key, scancode int,
+		action glfw.Action, mods glfw.ModifierKey) {
+		if (action != glfw.Release) {
+			switch(key) {
+			case glfw.KeyS: disp.HideOff = !disp.HideOff
+			case glfw.KeyR: disp.ResetView()
+			}
+		}
+	})
+
+	if err := gl.Init(); err != nil { return err }
 	gl.Enable(gl.DEPTH_TEST)
 	gl.ClearColor(0.12, 0.12, 0.12, 1.0)
 
