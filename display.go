@@ -1,15 +1,15 @@
 package main
 
 import (
-	glfw    "github.com/go-gl/glfw3"
-	gl      "github.com/polyfloyd/go-gl"
-	irix    "polyfloyd/irix"
-	input   "polyfloyd/irix/input"
-	xmath   "polyfloyd/irix/math"
-	matreex "polyfloyd/irix/math/matreex"
-	mesh    "polyfloyd/irix/mesh"
-	shader  "polyfloyd/irix/shader"
-	util    "polyfloyd/irix/util"
+	"math"
+	gl     "github.com/polyfloyd/go-gl"
+	glfw   "github.com/go-gl/glfw3"
+	input  "polyfloyd/irix/input"
+	irix   "polyfloyd/irix"
+	mathgl "github.com/go-gl/mathgl/mgl32"
+	mesh   "polyfloyd/irix/mesh"
+	shader "polyfloyd/irix/shader"
+	util   "polyfloyd/irix/util"
 )
 
 var (
@@ -19,12 +19,12 @@ var (
 	DisplayBackBuffer []float32
 
 	frontBuffer []float32
+	sphere      *mesh.Mesh
+	ledShader   *shader.Program
 
-	cam           = NewCubeCamera()
-	projection    = matreex.NewElement()
-	sphere        *mesh.Mesh
-	ledShader     *shader.Program
-	ledTransforms []matreex.Element
+	camRotX float32
+	camRotY float32
+	camZoom float32
 )
 
 func SwapDisplayBuffer() {
@@ -39,7 +39,12 @@ func StartDisplay(title string) {
 	TotalVoxels       = CUBE_WIDTH * CUBE_LENGTH * CUBE_HEIGHT
 	DisplayBackBuffer = make([]float32, TotalVoxels * 3)
 	frontBuffer       = make([]float32, TotalVoxels * 3)
-	ledTransforms     = make([]matreex.Element, TotalVoxels)
+
+	for i := 0; i < len(frontBuffer); i += 3 {
+		frontBuffer[i + 0] = 0.0
+		frontBuffer[i + 1] = 0.4
+		frontBuffer[i + 2] = 1.0
+	}
 
 	irix.UseVSync(true)
 
@@ -47,59 +52,27 @@ func StartDisplay(title string) {
 		showOff = !showOff
 	})
 	input.OnKeyPress(glfw.KeyR, func(_ glfw.ModifierKey) {
-		cam.RotX = 0
-		cam.RotY = 0
-		cam.Zoom = -160
+		camRotX = 0
+		camRotY = 0
+		camZoom = -160
 	})
 	input.OnMouseScroll(func(dx, dy float64) {
-		cam.Zoom += float32(dy) * UI_ZOOMACCEL
+		camZoom += float32(dy) * UI_ZOOMACCEL
 	})
 	input.OnMouseDrag(glfw.MouseButtonLeft, func(x, y float64) {
-		cam.RotX += float32(x / 10)
-		if cam.RotX > 90 {
-			cam.RotX = 90
-		} else if cam.RotX < -90 {
-			cam.RotX = -90
+		camRotX += float32(x) / UI_DRAGDIV
+		if camRotX > math.Pi/2 {
+			camRotX = math.Pi/2
+		} else if camRotX < -math.Pi/2 {
+			camRotX = -math.Pi/2
 		}
-		cam.RotY += float32(y / 10)
-		if cam.RotY > 90 {
-			cam.RotY = 90
-		} else if cam.RotY < -90 {
-			cam.RotY = -90
+		camRotY += float32(y) / UI_DRAGDIV
+		if camRotY > math.Pi/2 {
+			camRotY = math.Pi/2
+		} else if camRotY < -math.Pi/2 {
+			camRotY = -math.Pi/2
 		}
 	})
-
-	for i := 0; i < len(frontBuffer); i += 3 {
-		frontBuffer[i]     = 0.0
-		frontBuffer[i + 1] = 0.4
-		frontBuffer[i + 2] = 1.0
-	}
-
-	center := matreex.NewElement()
-	center.Translate(
-		-(UI_SPACING*float32(CUBE_WIDTH)/2  - UI_SPACING/2),
-		-(UI_SPACING*float32(CUBE_HEIGHT)/2 - UI_SPACING/2),
-		-(UI_SPACING*float32(CUBE_LENGTH)/2 - UI_SPACING/2),
-		nil,
-	);
-	camMat := cam.MatElement()
-	camMat.AddChild(center)
-	for x := 0; x < CUBE_WIDTH; x++ {
-		for y := 0; y < CUBE_HEIGHT; y++ {
-			for z := 0; z < CUBE_LENGTH; z++ {
-				mat := &ledTransforms[x*CUBE_HEIGHT*CUBE_LENGTH + y*CUBE_LENGTH + z]
-				mat.LoadIdentity()
-				mat.Translate(
-					float32(x) * UI_SPACING,
-					float32(y) * UI_SPACING,
-					float32(z) * UI_SPACING,
-					nil,
-				)
-				center.AddChild(mat)
-			}
-		}
-	}
-	projection.AddChild(camMat)
 
 	util.RunGLAsync(InitGL)
 	util.Check(irix.OpenWindow(1280, 768, false))
@@ -166,69 +139,46 @@ func InitGL() {
 }
 
 func UpdateDisplay(delta float32) {
-	projection.LoadProjection(
-		cam.GetFovy(),
-		irix.WindowAspect(),
-		cam.GetZNear(),
-		cam.GetZFar(),
+	projection := mathgl.Perspective(UI_FOVY, irix.WindowAspect(), UI_ZNEAR, UI_ZFAR)
+
+	center := mathgl.Translate3D(
+		-(UI_SPACING*float32(CUBE_WIDTH)/2  - UI_SPACING/2),
+		-(UI_SPACING*float32(CUBE_HEIGHT)/2 - UI_SPACING/2),
+		-(UI_SPACING*float32(CUBE_LENGTH)/2 - UI_SPACING/2),
 	)
-	projection.Update()
-	cam.UpdateLogic(delta)
+	view := func() mathgl.Mat4 {
+		m := mathgl.Ident4()
+		m = m.Mul4(mathgl.Translate3D(0, 0, camZoom))
+		m = m.Mul4(mathgl.HomogRotate3DY(camRotX))
+		m = m.Mul4(mathgl.HomogRotate3DX(camRotY))
+		return m
+	}()
 
-	colorUniform := ledShader.Uniform["color_led"]
-	for i, mat := range ledTransforms {
-		r := frontBuffer[i*3]
-		g := frontBuffer[i*3 + 1]
-		b := frontBuffer[i*3 + 2]
-		if !showOff && (r==0 && g==0 && b==0) {
-			continue
+	uniformColor := ledShader.Uniform["color_led"]
+	uniformMVP   := ledShader.Uniform["mat_modviewproj"]
+	for x := 0; x < CUBE_WIDTH; x++ {
+		for y := 0; y < CUBE_HEIGHT; y++ {
+			for z := 0; z < CUBE_LENGTH; z++ {
+				i := x*CUBE_HEIGHT*CUBE_LENGTH + y*CUBE_LENGTH + z
+
+				r := frontBuffer[i*3 + 0]
+				g := frontBuffer[i*3 + 1]
+				b := frontBuffer[i*3 + 2]
+				if !showOff && (r==0 && g==0 && b==0) {
+					continue
+				}
+
+				model := mathgl.Translate3D(
+					float32(x) * UI_SPACING,
+					float32(y) * UI_SPACING,
+					float32(z) * UI_SPACING,
+				).Mul4(center);
+
+				mvp := projection.Mul4(view).Mul4(model)
+				uniformMVP.UniformMatrix4f(false, (*[16]float32)(&mvp))
+				uniformColor.Uniform3f(r, g, b)
+				sphere.Render()
+			}
 		}
-		ledShader.MatModviewProj(&mat.Abs)
-		colorUniform.Uniform3f(r, g, b)
-		sphere.Render()
 	}
-}
-
-type CubeCamera struct {
-	RotX    float32
-	RotY    float32
-	Zoom    float32
-	mat     matreex.Element
-	inverse xmath.Matrix4
-}
-
-func NewCubeCamera() *CubeCamera {
-	return &CubeCamera{
-		Zoom: -160,
-		mat:  *matreex.NewElement(),
-	}
-}
-
-func (cam *CubeCamera) UpdateLogic(delta float32) {
-	cam.mat.LoadIdentity()
-	cam.mat.Translate(0, 0, cam.Zoom, nil)
-	cam.mat.Rotate(cam.RotX, 0, 1, 0, nil)
-	cam.mat.Rotate(cam.RotY, 1, 0, 0, nil)
-	cam.mat.Invert(&cam.inverse)
-}
-
-func (cam *CubeCamera) Unproject(v *xmath.Vector4) (ret xmath.Vector4) {
-	cam.inverse.TransformV(v, &ret)
-	return
-}
-
-func (cam *CubeCamera) MatElement() *matreex.Element {
-	return &cam.mat
-}
-
-func (cam *CubeCamera) GetFovy() float32 {
-	return UI_FOVY
-}
-
-func (cam *CubeCamera) GetZNear() float32 {
-	return 1.0
-}
-
-func (cam *CubeCamera) GetZFar() float32 {
-	return 640
 }

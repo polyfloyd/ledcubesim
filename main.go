@@ -9,9 +9,12 @@ var (
 	CUBE_WIDTH    int
 	CUBE_HEIGHT   int
 	CUBE_LENGTH   int
-	UI_ZOOMACCEL  float32 = 12.0
-	UI_SPACING    float32 = 8.0
 	UI_FOVY       float32 = 45.0
+	UI_SPACING    float32 = 8.0
+	UI_ZFAR       float32 = 640
+	UI_ZNEAR      float32 = 1
+	UI_ZOOMACCEL  float32 = 12.0
+	UI_DRAGDIV    float32 = 240.0
 )
 
 func main() {
