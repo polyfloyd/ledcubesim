@@ -17,6 +17,7 @@ var (
 	UI_ZFAR       float32 = 640
 	UI_ZNEAR      float32 = 1
 	UI_ZOOMACCEL  float32 = 12.0
+	UI_DETAIL     int     = 2
 	VOXEL_TOTAL   int
 )
 
