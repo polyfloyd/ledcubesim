@@ -1,12 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"runtime"
 	gl     "github.com/polyfloyd/go-gl"
 	glfw   "github.com/go-gl/glfw3"
 	mathgl "github.com/go-gl/mathgl/mgl32"
 	mesh   "polyfloyd/irix/mesh"
-	shader "polyfloyd/irix/shader"
 )
 
 type Display struct {
@@ -22,7 +22,7 @@ type Display struct {
 
 	frontBuffer       []float32
 	ledModel          *mesh.Mesh
-	shader            *shader.Program
+	shader            gl.Program
 	shouldSwapBuffers bool
 	win  *glfw.Window
 }
@@ -70,8 +70,8 @@ func (disp *Display) Start() {
 }
 
 func (disp *Display) render() {
-	uniformColor := disp.shader.Uniform["color_led"]
-	uniformMVP   := disp.shader.Uniform["mat_modviewproj"]
+	uniformColor := disp.shader.GetUniformLocation("color_led")
+	uniformMVP   := disp.shader.GetUniformLocation("mat_mvp")
 
 	projection := mathgl.Perspective(
 		UI_FOVY,
@@ -178,16 +178,34 @@ func (disp *Display) init() error {
 	disp.ledModel = m[0]
 	disp.ledModel.Load()
 
-	vert, err := shader.CreateVertexObject(SHADER_SRC_VX)
+	compileShader := func(typ gl.GLenum, src string) (gl.Shader, error) {
+		sh := gl.CreateShader(typ)
+		sh.Source(src)
+		sh.Compile()
+		if sh.Get(gl.COMPILE_STATUS) == gl.FALSE {
+			sh.Delete()
+			return 0, fmt.Errorf(sh.GetInfoLog())
+		}
+		return sh, nil
+	}
+	vx, err := compileShader(gl.VERTEX_SHADER, vertexShaderSource)
 	if (err != nil) { return err }
-	if err := vert.Load(); err != nil { return err }
-	frag, err := shader.CreateFragmentObject(SHADER_SRC_FG)
+	fg, err := compileShader(gl.FRAGMENT_SHADER, fragmentShaderSource)
 	if (err != nil) { return err }
-	if err := frag.Load(); err != nil { return err }
-	disp.shader, err = shader.Link(true, vert, frag)
-	if (err != nil) { return err }
+	disp.shader = gl.CreateProgram()
+	disp.shader.AttachShader(vx)
+	disp.shader.AttachShader(fg)
+	disp.shader.Link()
+	disp.shader.DetachShader(vx)
+	disp.shader.DetachShader(fg)
+	vx.Delete()
+	fg.Delete()
+	if disp.shader.Get(gl.LINK_STATUS) == gl.FALSE {
+		disp.shader.Delete()
+		return fmt.Errorf(disp.shader.GetInfoLog())
+	}
 
-	disp.shader.Enable()
+	disp.shader.Use()
 	disp.ledModel.Enable()
 	return nil
 }
@@ -201,35 +219,31 @@ func (disp *Display) ResetView() {
 	disp.camZoom = -160
 }
 
-const SHADER_SRC_VX = `
+const vertexShaderSource = `
 	#version 330 core
 
-	{{.vert_position  }}
-	{{.vert_normal    }}
-	{{.vert_tex2      }}
-	{{.vert_color     }}
-	{{.mat_modviewproj}}
+	layout(location = 0) in vec3 vert_position;
+	layout(location = 1) in vec3 vert_normal;
+	layout(location = 3) in vec3 vert_color;
+	uniform mat4 mat_mvp;
 
 	out vec3 frag_normal;
-	out vec2 frag_tex2;
 	out vec3 frag_color;
 
 	void main() {
 		frag_normal = vert_normal;
-		frag_tex2   = vert_tex2;
 		frag_color  = vert_color;
-		gl_Position = mat_modviewproj * vec4(vert_position, 1.0);
+		gl_Position = mat_mvp * vec4(vert_position, 1.0);
 	}
 `
 
-const SHADER_SRC_FG = `
+const fragmentShaderSource = `
 	#version 330 core
 
 	vec3 LIGHT_VEC   = normalize(vec3(1, 1, 1));
 	vec3 LIGHT_COLOR = vec3(0.2, 0.2, 0.2);
 
 	in vec3 frag_normal;
-	in vec2 frag_tex2;
 	in vec3 frag_color;
 
 	uniform vec3 color_led;
