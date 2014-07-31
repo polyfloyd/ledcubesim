@@ -1,3 +1,7 @@
+#
+# Copyright (c) 2014 PolyFloyd
+#
+
 import os
 import socket
 import sys

@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2014 PolyFloyd
+ */
+
 package main
 
 import "flag"
