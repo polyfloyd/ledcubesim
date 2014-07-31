@@ -25,7 +25,7 @@ type Display struct {
 	shouldSwapBuffers bool
 	voxelBuffer       gl.Buffer
 	voxelLen          int
-	win  *glfw.Window
+	win               *glfw.Window
 }
 
 func NewDisplay(w, h, l int) *Display {
@@ -122,15 +122,16 @@ func (disp *Display) render() {
 }
 
 func (disp *Display) init() error {
+	//
+	// Initialize GLFW and create a window
+	//
 	if !glfw.Init() {
 		panic("Can't init GLFW!")
 	}
-	{
-		var err error
-		disp.win, err = glfw.CreateWindow(UI_WIN_W, UI_WIN_H, INFO, nil, nil)
-		if err != nil {
-			panic(err)
-		}
+	var err error
+	disp.win, err = glfw.CreateWindow(UI_WIN_W, UI_WIN_H, INFO, nil, nil)
+	if err != nil {
+		panic(err)
 	}
 	disp.win.MakeContextCurrent()
 	resize := func(w, h int) { gl.Viewport(0, 0, w, h) }
@@ -140,6 +141,9 @@ func (disp *Display) init() error {
 	resize(disp.win.GetSize())
 	glfw.SwapInterval(1)
 
+	//
+	// Initialize user input
+	//
 	var dragButtonDown bool
 	var mousePosLastX float64
 	var mousePosLastY float64
@@ -170,10 +174,16 @@ func (disp *Display) init() error {
 		}
 	})
 
+	//
+	// Initialize OpenGL
+	//
 	if err := gl.Init(); err != nil { return err }
 	gl.Enable(gl.DEPTH_TEST)
 	gl.ClearColor(0.12, 0.12, 0.12, 1.0)
 
+	//
+	// Compile the voxel shader
+	//
 	compileShader := func(typ gl.GLenum, src string) (gl.Shader, error) {
 		sh := gl.CreateShader(typ)
 		sh.Source(src)
@@ -202,6 +212,9 @@ func (disp *Display) init() error {
 	}
 	disp.shader.Use()
 
+	//
+	// Generate and initialize the voxel model
+	//
 	bufferData := getVoxelBuffer(UI_DETAIL)
 	disp.voxelBuffer = gl.GenBuffer()
 	disp.voxelBuffer.Bind(gl.ARRAY_BUFFER)
@@ -211,11 +224,18 @@ func (disp *Display) init() error {
 	attribVert.EnableArray()
 	attribVert.AttribPointer(3, gl.FLOAT, false, 3*4, uintptr(0))
 
+	//
+	// Initialize the shader by setting some constant uniforms
+	//
 	disp.shader.GetUniformLocation("light_color").Uniform3f(0.15, 0.15, 0.15)
 	disp.shader.GetUniformLocation("light_vec").Uniform3f(mathgl.Vec3{1, 1, 1}.Normalize().Elem())
 	disp.shader.GetUniformLocation("voxel_radius").Uniform1f(1)
 
 	return nil
+}
+
+func (disp *Display) NumVoxels() int {
+	return disp.cubeHeight*disp.cubeLength*disp.cubeWidth
 }
 
 func (disp *Display) SwapBuffers() {

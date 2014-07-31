@@ -5,8 +5,8 @@ import (
 	"net"
 )
 
-func StartServer() {
-	listener, err := net.Listen("tcp", SERVER_LISTEN)
+func StartServer(listen string) {
+	listener, err := net.Listen("tcp", listen)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -23,7 +23,7 @@ func StartServer() {
 func communicate(conn net.Conn) {
 	log.Printf("%v connected", conn.RemoteAddr())
 
-	buf := make([]byte, VOXEL_TOTAL * 3)
+	buf := make([]byte, VoxelDisplay.NumVoxels() * 3)
 	for {
 		_, err := conn.Read(buf[:3])
 		if err != nil {
@@ -34,19 +34,19 @@ func communicate(conn net.Conn) {
 		case "nfo":
 			conn.Write([]byte(INFO+"\n"))
 		case "frm":
-			for completed := 0; completed < VOXEL_TOTAL * 3; {
-				read, err := conn.Read(buf[:VOXEL_TOTAL*3 - completed])
+			for completed := 0; completed < VoxelDisplay.NumVoxels() * 3; {
+				read, err := conn.Read(buf[:VoxelDisplay.NumVoxels()*3 - completed])
 				if err != nil {
 					log.Printf("%v disconnected", conn.RemoteAddr())
 					break
 				}
 				for i, b := range buf[:read] {
-					LEDDisplay.Buffer[completed+i] = float32(b) / 256
+					VoxelDisplay.Buffer[completed+i] = float32(b) / 256
 				}
 				completed += read
 			}
 		case "swp":
-			LEDDisplay.SwapBuffers()
+			VoxelDisplay.SwapBuffers()
 		}
 	}
 }
