@@ -24,11 +24,11 @@ class Cube(socket.socket):
 	size   = (0, 0, 0)
 	colors = 1
 
-	def __init__(self, size, colors, connectTo=determineConnection()):
+	def __init__(self, size, colors, server=determineConnection()):
 		super(Cube, self).__init__(socket.AF_INET, socket.SOCK_STREAM)
 		self.size   = size
 		self.colors = colors
-		self.connect(connectTo)
+		self.connect(server)
 
 	def swap(self):
 		self.send(b"swp")

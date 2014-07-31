@@ -1,13 +1,11 @@
 #! /usr/bin/env python3
 
-import array
 import ledcube
 import math
-import os
 import time
 
-acc = 24
-ampStep  = .09
+ACCURACY = 24
+STEP     = .09
 
 cube         = ledcube.Cube((16, 16, 16), 3)
 frame        = bytearray(16**3 * 3)
@@ -17,19 +15,19 @@ stepsCurrent = 0
 
 while (1):
 	for i in range(0, 4):
-		amp[i] += (1 if (ampIndex&(1<<i) != 0) else -1) * ampStep
+		amp[i] += (1 if (ampIndex&(1<<i) != 0) else -1) * STEP
 		amp[i] = amp[i] if (amp[i] >= 0) else 0
 		amp[i] = amp[i] if (amp[i] <= 1) else 1
 
 	stepsCurrent += 1
-	if stepsCurrent >= 1 / ampStep:
+	if stepsCurrent >= 1 / STEP:
 		stepsCurrent = 0
 		ampIndex = (ampIndex) % (2**4 - 2) + 1
 
-	for u in range(-acc, acc):
-		u /= acc
-		for v in range(-acc, acc):
-			v /= acc
+	for u in range(-ACCURACY, ACCURACY):
+		u /= ACCURACY
+		for v in range(-ACCURACY, ACCURACY):
+			v /= ACCURACY
 			x = math.cos(v * math.pi) * math.sin(u * math.pi)
 			y = math.sin(v * math.pi) * math.sin(u * math.pi)
 			z = math.sin(u * math.pi + math.pi / 2)
