@@ -323,13 +323,13 @@ func getVoxelBuffer(detail int) []mathgl.Vec3 {
 }
 
 const vertexShaderSource = `
-	#version 130
+	#version 120
 
-	in vec3 voxel;
 	uniform float voxel_radius;
 	uniform mat4 mat_mvp;
 
-	out vec3 frag_normal;
+	attribute vec3 voxel;
+	varying vec3 frag_normal;
 
 	void main() {
 		frag_normal = voxel;
@@ -338,18 +338,16 @@ const vertexShaderSource = `
 `
 
 const fragmentShaderSource = `
-	#version 130
+	#version 120
 
 	uniform vec3 light_color;
 	uniform vec3 light_vec;
 	uniform vec3 color_led;
 
-	in vec3 frag_normal;
-
-	out vec3 color;
+	varying vec3 frag_normal;
 
 	void main() {
 		float cosTheta = clamp(dot(frag_normal, light_vec), 0, 1);
-		color = color_led + light_color * cosTheta;
+		gl_FragColor = vec4(color_led + light_color * cosTheta, 1.0);
 	}
 `
