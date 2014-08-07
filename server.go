@@ -7,6 +7,7 @@ package main
 import (
 	"log"
 	"net"
+	"unsafe"
 )
 
 func StartServer(listen string) {
@@ -37,6 +38,15 @@ func communicate(conn net.Conn) {
 		switch string(buf[:3]) {
 		case "ver":
 			conn.Write([]byte(INFO))
+		case "inf":
+			x := *(*[4]byte)(unsafe.Pointer(&VoxelDisplay.CubeWidth))
+			conn.Write(x[:])
+			y := *(*[4]byte)(unsafe.Pointer(&VoxelDisplay.CubeLength))
+			conn.Write(y[:])
+			z := *(*[4]byte)(unsafe.Pointer(&VoxelDisplay.CubeHeight))
+			conn.Write(z[:])
+			conn.Write([]byte{ 3 })
+			conn.Write([]byte{ 60 })
 		case "put":
 			for completed := 0; completed < VoxelDisplay.NumVoxels() * 3; {
 				read, err := conn.Read(buf[:VoxelDisplay.NumVoxels()*3 - completed])

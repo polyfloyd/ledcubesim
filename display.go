@@ -17,9 +17,9 @@ type Display struct {
 	Buffer  []float32
 	HideOff bool
 
-	cubeHeight  int
-	cubeLength  int
-	cubeWidth   int
+	CubeHeight  int
+	CubeLength  int
+	CubeWidth   int
 
 	camRot  mathgl.Quat
 	camZoom float32
@@ -34,9 +34,9 @@ type Display struct {
 
 func NewDisplay(w, h, l int) *Display {
 	disp := &Display{
-		cubeHeight:  h,
-		cubeLength:  l,
-		cubeWidth:   w,
+		CubeHeight:  h,
+		CubeLength:  l,
+		CubeWidth:   w,
 		Buffer:      make([]float32, w*h*l * 3),
 		frontBuffer: make([]float32, w*h*l * 3),
 	}
@@ -87,9 +87,9 @@ func (disp *Display) render() {
 		UI_ZFAR,
 	)
 	center := mathgl.Translate3D(
-		-(UI_SPACING*float32(disp.cubeWidth)/2  - UI_SPACING/2),
-		-(UI_SPACING*float32(disp.cubeHeight)/2 - UI_SPACING/2),
-		-(UI_SPACING*float32(disp.cubeLength)/2 - UI_SPACING/2),
+		-(UI_SPACING*float32(disp.CubeWidth)/2  - UI_SPACING/2),
+		-(UI_SPACING*float32(disp.CubeHeight)/2 - UI_SPACING/2),
+		-(UI_SPACING*float32(disp.CubeLength)/2 - UI_SPACING/2),
 	)
 	view := func() mathgl.Mat4 {
 		m := mathgl.Ident4()
@@ -98,10 +98,10 @@ func (disp *Display) render() {
 		return m
 	}()
 
-	for x := 0; x < disp.cubeWidth; x++ {
-		for y := 0; y < disp.cubeHeight; y++ {
-			for z := 0; z < disp.cubeLength; z++ {
-				i := x*disp.cubeHeight*disp.cubeLength + y*disp.cubeLength + z
+	for x := 0; x < disp.CubeWidth; x++ {
+		for y := 0; y < disp.CubeHeight; y++ {
+			for z := 0; z < disp.CubeLength; z++ {
+				i := x*disp.CubeHeight*disp.CubeLength + y*disp.CubeLength + z
 
 				r := disp.frontBuffer[i*3 + 0]
 				g := disp.frontBuffer[i*3 + 1]
@@ -241,7 +241,7 @@ func (disp *Display) init() error {
 }
 
 func (disp *Display) NumVoxels() int {
-	return disp.cubeHeight*disp.cubeLength*disp.cubeWidth
+	return disp.CubeHeight*disp.CubeLength*disp.CubeWidth
 }
 
 func (disp *Display) SwapBuffers() {

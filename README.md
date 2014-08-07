@@ -38,6 +38,19 @@ Finally, install and build ledcubesim:
 ## Network Protocol
 The network protocol consists of 3 character commands:
 
+#### inf
+Sending `inf` will cause the program to reply some technical characteristics
+of the display in a binary format:
+
+| Offset (bytes) | Data        |
+| -------------- | ----------- |
+| 0 - 3          | Cube Width  |
+| 4 - 7          | Cube Length |
+| 8 - 11         | Cube Height |
+| 12 - 12        | Colormode   |
+| 13 - 13        | Framerate   |
+
+
 #### put
 Sending `put` will prepare the program to accept one frame.
 To finish, the client must send exactly one frame.
