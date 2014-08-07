@@ -11,7 +11,7 @@ import time
 
 STEPS = 40
 
-cube         = ledcube.Cube((16, 16, 16), 3)
+cube         = ledcube.Cube()
 currentFrame = bytearray(cube.length())
 targetFrame  = bytearray(cube.length())
 

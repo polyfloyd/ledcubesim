@@ -26,13 +26,23 @@ def determineConnection():
 class Cube(socket.socket):
 
 	size   = (0, 0, 0)
-	colors = 1
+	colors = 3
+	fps    = 0
 
-	def __init__(self, size, colors, server=determineConnection()):
+	def __init__(self, server=determineConnection()):
 		super(Cube, self).__init__(socket.AF_INET, socket.SOCK_STREAM)
-		self.size   = size
-		self.colors = colors
 		self.connect(server)
+
+		self.send(b"inf")
+		data = self.recv(4 * 3 + 1 + 1, socket.MSG_WAITALL)
+		getInt = lambda offset: int.from_bytes(data[offset:offset + 4], byteorder="little")
+		self.size = (
+		    getInt(4 * 0),
+		    getInt(4 * 1),
+		    getInt(4 * 2),
+		)
+		self.colors = int(data[4 * 3])
+		self.fps    = int(data[4 * 3 + 1])
 
 	def swap(self):
 		self.send(b"swp")

@@ -11,7 +11,7 @@ import time
 ACCURACY = 24
 STEP     = .09
 
-cube         = ledcube.Cube((16, 16, 16), 3)
+cube         = ledcube.Cube()
 frame        = bytearray(16**3 * 3)
 amp          = [1, 0, 0, 0]
 ampIndex     = 1

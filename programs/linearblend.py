@@ -6,6 +6,6 @@
 
 import ledcube
 
-cube = ledcube.Cube((16, 16, 16), 3)
+cube = ledcube.Cube()
 
 cube.graph(lambda x, y, z: (x, y, z))
