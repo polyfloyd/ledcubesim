@@ -35,9 +35,9 @@ func communicate(conn net.Conn) {
 			break
 		}
 		switch string(buf[:3]) {
-		case "nfo":
-			conn.Write([]byte(INFO+"\n"))
-		case "frm":
+		case "ver":
+			conn.Write([]byte(INFO))
+		case "put":
 			for completed := 0; completed < VoxelDisplay.NumVoxels() * 3; {
 				read, err := conn.Read(buf[:VoxelDisplay.NumVoxels()*3 - completed])
 				if err != nil {

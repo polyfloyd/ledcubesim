@@ -38,8 +38,8 @@ Finally, install and build ledcubesim:
 ## Network Protocol
 The network protocol consists of 3 character commands:
 
-#### frm
-Sending `frm` will prepare the program to accept one frame.
+#### put
+Sending `put` will prepare the program to accept one frame.
 To finish, the client must send exactly one frame.
 The size of a frame in bytes is determined with `width * height * length * 3`.
 Color information is encoded as `RGB`.
@@ -47,8 +47,8 @@ Color information is encoded as `RGB`.
 #### swp
 Sending `swp` swaps the displaybuffers.
 
-#### nfo
-Sending `nfo` will cause the program to reply some vendor information.
+#### ver
+Sending `ver` will cause the program to reply some version and vendor information.
 
 
 ## Programs

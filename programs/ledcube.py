@@ -38,7 +38,7 @@ class Cube(socket.socket):
 		self.send(b"swp")
 
 	def frame(self, data):
-		self.send(b"frm")
+		self.send(b"put")
 		self.send(data)
 
 	def xyz(self, xyz, rgb=0):
