@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"math"
 	"runtime"
-	gl     "github.com/polyfloyd/go-gl"
+	gl     "github.com/go-gl/gl"
 	glfw   "github.com/go-gl/glfw3"
 	mathgl "github.com/go-gl/mathgl/mgl32"
 )
@@ -181,7 +181,9 @@ func (disp *Display) init() error {
 	//
 	// Initialize OpenGL
 	//
-	if err := gl.Init(); err != nil { return err }
+	if gl.Init() != gl.FALSE {
+		return fmt.Errorf("Could not initialize OpenGL")
+	}
 	gl.Enable(gl.DEPTH_TEST)
 	gl.ClearColor(0.12, 0.12, 0.12, 1.0)
 
