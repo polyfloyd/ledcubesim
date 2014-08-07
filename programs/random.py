@@ -24,4 +24,4 @@ while 1:
 			currentFrame[j] = int(sourceFrame[j] * (1 - m) + targetFrame[j] * m)
 		cube.frame(currentFrame)
 		cube.swap()
-		time.sleep(1/60)
+		time.sleep(1 / cube.fps)

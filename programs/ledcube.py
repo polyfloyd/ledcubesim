@@ -51,24 +51,22 @@ class Cube(socket.socket):
 		self.send(b"put")
 		self.send(data)
 
-	def xyz(self, xyz, rgb=0):
-		return (xyz[0]*self.size[0]*self.size[1] + xyz[1]*self.size[1] + xyz[2]) * self.colors + rgb
+	def index(self, x, y, z, rgb=0):
+		return (x*self.size[0]*self.size[1] + y*self.size[1] + z) * self.colors + rgb
 
-	def graph(self, func, autoSend=1, autoSwap=1):
-		frame = bytearray(self.size[0] * self.size[1] * self.size[2] * 3)
-		sx = self.size[0]
-		sy = self.size[1]
-		sz = self.size[2]
-		for x in range(0, sx):
-			for y in range(0, sy):
-				for z in range(0, sz):
-					vox = func(x / sx, y / sy, z / sz)
+	def graph3(self, func, send=1, swap=1):
+		frame = bytearray(self.length())
+		for x in range(0, self.size[0]):
+			for y in range(0, self.size[1]):
+				for z in range(0, self.size[2]):
+					vox = func(x / self.size[0], y / self.size[0], z / self.size[0])
 					for c in range(0, self.colors):
-						frame[self.xyz((x, y, z), c)] = int(vox[c] * 255)
-		if autoSend:
+						frame[self.index(x, y, z, c)] = int(vox[c] * 255)
+		if send:
 			self.frame(frame)
-			if autoSwap:
+			if swap:
 				self.swap()
+		return frame
 
 	def length(self):
 		return self.size[0] * self.size[1] * self.size[2] * self.colors

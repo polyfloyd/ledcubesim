@@ -8,4 +8,4 @@ import ledcube
 
 cube = ledcube.Cube()
 
-cube.graph(lambda x, y, z: (x, y, z))
+cube.graph3(lambda x, y, z: (x, y, z))

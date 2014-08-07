@@ -12,7 +12,7 @@ ACCURACY = 24
 STEP     = .09
 
 cube         = ledcube.Cube()
-frame        = bytearray(16**3 * 3)
+frame        = bytearray(cube.length())
 amp          = [1, 0, 0, 0]
 ampIndex     = 1
 stepsCurrent = 0
@@ -35,11 +35,11 @@ while (1):
 			x = math.cos(v * math.pi) * math.sin(u * math.pi)
 			y = math.sin(v * math.pi) * math.sin(u * math.pi)
 			z = math.sin(u * math.pi + math.pi / 2)
-			i = cube.xyz((
+			i = cube.index(
 				int((.5 + x/2) * 15.5),
 				int((.5 + y/2) * 15.5),
 				int((.5 + z/2) * 15.5),
-			))
+			)
 
 			sin = math.sin((.5 + v / 2) * math.pi * 2) / 2
 			frame[i+0] = int(amp[1] * 255 * (.5 + sin) + amp[0] * 255 * (.5 - sin))
