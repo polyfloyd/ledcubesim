@@ -8,7 +8,7 @@ import "flag"
 
 const (
 	INFO = "PolyFloyd's LEDCube Simulator v0.1"
-	UI_DETAIL     int     = 2
+	UI_DETAIL     int     = 1
 	UI_DRAGDIV    float32 = 240.0
 	UI_FOVY       float32 = 45.0
 	UI_SPACING    float32 = 8.0
