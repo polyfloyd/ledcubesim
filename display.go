@@ -99,10 +99,9 @@ func (disp *Display) render() {
 	}()
 
 	for x := 0; x < disp.CubeWidth; x++ {
-		for y := 0; y < disp.CubeHeight; y++ {
-			for z := 0; z < disp.CubeLength; z++ {
-				i := x*disp.CubeHeight*disp.CubeLength + y*disp.CubeLength + z
-
+		for y := 0; y < disp.CubeLength; y++ {
+			for z := 0; z < disp.CubeHeight; z++ {
+				i := x*disp.CubeLength*disp.CubeHeight + y*disp.CubeHeight + z
 				r := disp.frontBuffer[i*3 + 0]
 				g := disp.frontBuffer[i*3 + 1]
 				b := disp.frontBuffer[i*3 + 2]
@@ -112,8 +111,8 @@ func (disp *Display) render() {
 
 				model := mathgl.Translate3D(
 					float32(x) * UI_SPACING,
-					float32(y) * UI_SPACING,
 					float32(z) * UI_SPACING,
+					float32(y) * UI_SPACING,
 				).Mul4(center);
 
 				mvp := projection.Mul4(view).Mul4(model)
