@@ -36,9 +36,9 @@ while (1):
 			y = math.sin(u * math.pi + math.pi / 2)
 			z = math.sin(v * math.pi) * math.sin(u * math.pi)
 			i = cube.index(
-				int((.5 + x/2) * (cube.size[0] - .5)),
-				int((.5 + y/2) * (cube.size[1] - .5)),
-				int((.5 + z/2) * (cube.size[2] - .5)),
+				int((.5 + x/2) * (cube.size.x - .5)),
+				int((.5 + y/2) * (cube.size.y - .5)),
+				int((.5 + z/2) * (cube.size.z - .5)),
 			)
 
 			sin = math.sin((.5 + v / 2) * math.pi * 2) / 2

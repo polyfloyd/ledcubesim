@@ -31,8 +31,8 @@ class Dot:
 while 1:
 	if counter > INTERVAL:
 		counter = 0
-		x     = random.randint(0, cube.size[0] - 1)
-		y     = random.randint(0, cube.size[1] - 1)
+		x     = random.randint(0, cube.size.x - 1)
+		y     = random.randint(0, cube.size.y - 1)
 		speed = SPEED + random.uniform(-SPEED, SPEED) / 2
 		dots.append(Dot(x, y, speed))
 
@@ -42,8 +42,8 @@ while 1:
 		hi = 1 - dot.pos
 		lo = 0 if lo < 0 else lo
 		hi = 1 if hi > 1 else hi
-		for z in range(int(lo * cube.size[2]), int(hi * cube.size[2])):
-			c = 1 - z / cube.size[2] - dot.pos
+		for z in range(int(lo * cube.size.z), int(hi * cube.size.z)):
+			c = 1 - z / cube.size.z - dot.pos
 			frame[cube.index(dot.x, dot.y, z, 1)] = int(c * 255)
 		dot.update()
 		if dot.pos > 1 + TAIL:

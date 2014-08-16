@@ -28,7 +28,7 @@ cube   = ledcube.Cube()
 colors = []
 t      = 0
 
-for i in range(0, int(cube.size[2] * BASE_DOT)):
+for i in range(0, int(cube.size.z * BASE_DOT)):
 	col = lambda: COL_BASE[random.randint(0, len(COL_BASE) - 1)]
 	colors.append([
 	    col(),
@@ -38,8 +38,8 @@ for i in range(0, int(cube.size[2] * BASE_DOT)):
 while 1:
 	frame = bytearray(cube.length())
 	t = (t + STEP) % 1
-	for z in range(0, cube.size[2] * EDGE_DOT):
-		zn = z / cube.size[2] / EDGE_DOT
+	for z in range(0, cube.size.z * EDGE_DOT):
+		zn = z / cube.size.z / EDGE_DOT
 
 		zn = (zn + t) % 1
 		x = math.cos(zn * math.pi * EDGE_ANG)
@@ -47,8 +47,8 @@ while 1:
 
 		def index(x, y):
 			return cube.index(
-				int((x / 2 + .5) * (cube.size[0] - .5)),
-				int((y / 2 + .5) * (cube.size[1] - .5)),
+				int((x / 2 + .5) * (cube.size.x - .5)),
+				int((y / 2 + .5) * (cube.size.y - .5)),
 				int(z / EDGE_DOT),
 			)
 
