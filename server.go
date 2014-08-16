@@ -26,13 +26,10 @@ func StartServer(listen string) {
 }
 
 func communicate(conn net.Conn) {
-	log.Printf("%v connected", conn.RemoteAddr())
-
 	buf := make([]byte, VoxelDisplay.NumVoxels() * 3)
-	for {
+	main: for {
 		_, err := conn.Read(buf[:3])
 		if err != nil {
-			log.Printf("%v disconnected", conn.RemoteAddr())
 			break
 		}
 		switch string(buf[:3]) {
@@ -51,8 +48,7 @@ func communicate(conn net.Conn) {
 			for completed := 0; completed < VoxelDisplay.NumVoxels() * 3; {
 				read, err := conn.Read(buf[:VoxelDisplay.NumVoxels()*3 - completed])
 				if err != nil {
-					log.Printf("%v disconnected", conn.RemoteAddr())
-					break
+					break main
 				}
 				for i, b := range buf[:read] {
 					VoxelDisplay.Buffer[completed+i] = float32(b) / 256
