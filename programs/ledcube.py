@@ -62,10 +62,12 @@ class Cube(socket.socket):
 
 	def graph2(self, func, send=True, swap=True):
 		frame = bytearray(self.length())
-		for x in range(0, self.size.x):
-			for y in range(0, self.size.y):
-				dot = func(x / self.size.x, y / self.size.y)
-				i   = self.index(x / self.size.x, y / self.size.y, dot[0])
+		for x in range(0, self.size.x + 1):
+			x = x / self.size.x
+			for y in range(0, self.size.y + 1):
+				y = y / self.size.y
+				dot = func(x, y)
+				i   = self.index(x, y, dot[0])
 				for c in range(0, 3):
 					frame[i + c] = int(dot[1][c] * 255)
 		if send:
