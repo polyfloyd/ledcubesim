@@ -41,15 +41,15 @@ while 1:
 	for z in range(0, cube.size.z * EDGE_DOT):
 		zn = z / cube.size.z / EDGE_DOT
 
-		zn = (zn + t) % 1
-		x = math.cos(zn * math.pi * EDGE_ANG)
-		y = math.sin(zn * math.pi * EDGE_ANG)
+		znt = (zn + t) % 1
+		x = math.cos(znt * math.pi * EDGE_ANG)
+		y = math.sin(znt * math.pi * EDGE_ANG)
 
 		def index(x, y):
 			return cube.index(
-				int((x / 2 + .5) * (cube.size.x - .5)),
-				int((y / 2 + .5) * (cube.size.y - .5)),
-				int(z / EDGE_DOT),
+				x / 2 + .5,
+				y / 2 + .5,
+				zn,
 			)
 
 		if z % (EDGE_DOT / BASE_DOT) == 0:

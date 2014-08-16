@@ -55,6 +55,9 @@ class Cube(socket.socket):
 		self.send(data)
 
 	def index(self, x, y, z, rgb=0):
+		x = int(x * (self.size.x - .5))
+		y = int(y * (self.size.y - .5))
+		z = int(z * (self.size.z - .5))
 		return (x*self.size.y*self.size.z + y*self.size.z + z) * self.colors + rgb
 
 	def graph2(self, func, send=True, swap=True):
@@ -62,7 +65,7 @@ class Cube(socket.socket):
 		for x in range(0, self.size.x):
 			for y in range(0, self.size.y):
 				dot = func(x / self.size.x, y / self.size.y)
-				i   = self.index(x, y, int(dot[0] * self.size.z - .5))
+				i   = self.index(x / self.size.x, y / self.size.y, dot[0])
 				for c in range(0, 3):
 					frame[i + c] = int(dot[1][c] * 255)
 		if send:
@@ -73,10 +76,13 @@ class Cube(socket.socket):
 
 	def graph3(self, func, send=True, swap=True):
 		frame = bytearray(self.length())
-		for x in range(0, self.size.x):
-			for y in range(0, self.size.y):
-				for z in range(0, self.size.z):
-					vox = func(x / self.size.x, y / self.size.y, z / self.size.z)
+		for x in range(0, self.size.x + 1):
+			x = x / self.size.x
+			for y in range(0, self.size.y + 1):
+				y = y / self.size.y
+				for z in range(0, self.size.z + 1):
+					z = z / self.size.z
+					vox = func(x, y, z)
 					for c in range(0, self.colors):
 						frame[self.index(x, y, z, c)] = int(vox[c] * 255)
 		if send:

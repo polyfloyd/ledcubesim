@@ -35,11 +35,7 @@ while (1):
 			x = math.cos(v * math.pi) * math.sin(u * math.pi)
 			y = math.sin(u * math.pi + math.pi / 2)
 			z = math.sin(v * math.pi) * math.sin(u * math.pi)
-			i = cube.index(
-				int((.5 + x/2) * (cube.size.x - .5)),
-				int((.5 + y/2) * (cube.size.y - .5)),
-				int((.5 + z/2) * (cube.size.z - .5)),
-			)
+			i = cube.index(.5 + x / 2, .5 + y / 2, .5 + z / 2 )
 
 			sin = math.sin((.5 + v / 2) * math.pi * 2) / 2
 			frame[i+0] = int(amp[1] * 255 * (.5 + sin) + amp[0] * 255 * (.5 - sin))
