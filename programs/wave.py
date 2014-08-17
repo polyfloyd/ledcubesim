@@ -8,21 +8,22 @@ import ledcube
 import math
 import time
 
-STEPS = 160
+SPEED_X = 0.005
+SPEED_Y = 0.01
 
 cube = ledcube.Cube()
 
-def wave(x, y, t):
-	x = x / 2
-	y = y / 2
-	n = lambda a: (a + t) % 1 * 2 - 1
-	zx  = math.cos(n(x) * math.pi)
-	zy  = math.sin(n(y) * math.pi)
+def wave(x, y, xt, yt):
+	n = lambda a, t: (a + t) % 1 * 2 - 1
+	zx  = math.cos(n(x / 2, xt) * math.pi)
+	zy  = math.sin(n(y / 2, yt) * math.pi)
 	z = (zx * zy + 1) / 2
-	col = (0, z, (1 - z))
-	return (z, col)
+	return (z, (0, z, (1 - z)))
 
+xt = 0
+yt = 0
 while (1):
-	for i in range(0, STEPS):
-		cube.graph2(lambda x, y: wave(x, y, i / STEPS))
-		time.sleep(1 / cube.fps)
+	xt = (xt + SPEED_X) % 1
+	yt = (yt + SPEED_Y) % 1
+	cube.graph2(lambda x, y: wave(x, y, xt, yt))
+	time.sleep(1 / cube.fps)
