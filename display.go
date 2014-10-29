@@ -24,6 +24,7 @@ type Display struct {
 	camRot  mathgl.Quat
 	camZoom float32
 
+	detail            int
 	frontBuffer       []float32
 	shader            gl.Program
 	shouldSwapBuffers bool
@@ -32,13 +33,14 @@ type Display struct {
 	win               *glfw.Window
 }
 
-func NewDisplay(w, h, l int) *Display {
+func NewDisplay(w, h, l, detail int) *Display {
 	disp := &Display{
 		CubeHeight:  h,
 		CubeLength:  l,
 		CubeWidth:   w,
 		Buffer:      make([]float32, w*h*l * 3),
 		frontBuffer: make([]float32, w*h*l * 3),
+		detail:      detail,
 	}
 	disp.ResetView()
 	return disp
@@ -220,7 +222,7 @@ func (disp *Display) init() error {
 	//
 	// Generate and initialize the voxel model
 	//
-	bufferData := getVoxelBuffer(UI_DETAIL)
+	bufferData := getVoxelBuffer(disp.detail)
 	disp.voxelBuffer = gl.GenBuffer()
 	disp.voxelBuffer.Bind(gl.ARRAY_BUFFER)
 	disp.voxelLen = len(bufferData)*3

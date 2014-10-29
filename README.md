@@ -32,8 +32,8 @@ Finally, install and build ledcubesim:
 	-cx=16: The width of the cube
 	-cy=16: The length of the cube
 	-cz=16: The height of the cube
+	-detail=1: The level of detail
 	-l=":54746": The TCP host and port for incoming connections
-
 
 ## Network Protocol
 The network protocol consists of 3 character commands:
