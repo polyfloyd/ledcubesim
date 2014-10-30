@@ -95,3 +95,21 @@ class Cube(socket.socket):
 
 	def length(self):
 		return self.size.x * self.size.y * self.size.z * self.colors
+
+class Frame(bytearray):
+
+	def __init__(self, size, bytes_per_voxel):
+		super(Frame, self).__init__(size.x * size.y * size.z * bytes_per_voxel)
+		self.size            = size
+		self.bytes_per_voxel = bytes_per_voxel
+
+	def set(self, x, y, z, voxel):
+		x = int(x)
+		y = int(y)
+		z = int(z)
+		assert(x >= 0 and x < self.size.x)
+		assert(y >= 0 and y < self.size.y)
+		assert(z >= 0 and z < self.size.z)
+		i = (x * self.size.y * self.size.z + y * self.size.z + z) * self.bytes_per_voxel
+		for j in range(0, self.bytes_per_voxel):
+			self[i + j] = int(voxel[j])
