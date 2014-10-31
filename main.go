@@ -13,8 +13,8 @@ const (
 	UI_SPACING    float32 = 8.0
 	UI_WIN_H      int     = 768
 	UI_WIN_W      int     = 1280
-	UI_ZFAR       float32 = 640
-	UI_ZNEAR      float32 = 1
+	UI_ZFAR       float32 = 2048.0
+	UI_ZNEAR      float32 = 1.0
 	UI_ZOOMACCEL  float32 = 12.0
 )
 
