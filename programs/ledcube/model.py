@@ -6,18 +6,18 @@ from collections import namedtuple
 import re
 
 PARSE_OBJ_V  = re.compile('^v\
-	\s(?P<x>[-\d\.]+)\
-	\s(?P<y>[-\d\.]+)\
-	\s(?P<z>[-\d\.]+)\
+	\s(?P<x>[-\d\.e]+)\
+	\s(?P<y>[-\d\.e]+)\
+	\s(?P<z>[-\d\.e]+)\
 $' , re.M | re.X)
 PARSE_OBJ_VT = re.compile('^vt\
-	\s(?P<u>[-\d\.]+)\
-	\s(?P<v>[-\d\.]+)\
+	\s(?P<u>[-\d\.e]+)\
+	\s(?P<v>[-\d\.e]+)\
 $', re.M | re.X)
 PARSE_OBJ_VN = re.compile('^vn\
-	\s(?P<x>[-\d\.]+)\
-	\s(?P<y>[-\d\.]+)\
-	\s(?P<z>[-\d\.]+)\
+	\s(?P<x>[-\d\.e]+)\
+	\s(?P<y>[-\d\.e]+)\
+	\s(?P<z>[-\d\.e]+)\
 $', re.M | re.X)
 PARSE_OBJ_F  = re.compile('^f\
 	\s(?P<va>\d+)\/(?P<vta>\d*)\/(?P<vna>\d*)\
