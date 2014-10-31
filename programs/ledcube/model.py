@@ -6,23 +6,23 @@ from collections import namedtuple
 import re
 
 PARSE_OBJ_V  = re.compile('^v\
-	\s(?P<x>[-\d\.e]+)\
-	\s(?P<y>[-\d\.e]+)\
-	\s(?P<z>[-\d\.e]+)\
+	\s+(?P<x>[-\d\.e]+)\
+	\s+(?P<y>[-\d\.e]+)\
+	\s+(?P<z>[-\d\.e]+)\
 $' , re.M | re.X)
 PARSE_OBJ_VT = re.compile('^vt\
-	\s(?P<u>[-\d\.e]+)\
-	\s(?P<v>[-\d\.e]+)\
+	\s+(?P<u>[-\d\.e]+)\
+	\s+(?P<v>[-\d\.e]+)\
 $', re.M | re.X)
 PARSE_OBJ_VN = re.compile('^vn\
-	\s(?P<x>[-\d\.e]+)\
-	\s(?P<y>[-\d\.e]+)\
-	\s(?P<z>[-\d\.e]+)\
+	\s+(?P<x>[-\d\.e]+)\
+	\s+(?P<y>[-\d\.e]+)\
+	\s+(?P<z>[-\d\.e]+)\
 $', re.M | re.X)
 PARSE_OBJ_F  = re.compile('^f\
-	\s(?P<va>\d+)\/(?P<vta>\d*)\/(?P<vna>\d*)\
-	\s(?P<vb>\d+)\/(?P<vtb>\d*)\/(?P<vnb>\d*)\
-	\s(?P<vc>\d+)\/(?P<vtc>\d*)\/(?P<vnc>\d*)\
+	\s+(?P<va>\d+)\/(?P<vta>\d*)\/(?P<vna>\d*)\
+	\s+(?P<vb>\d+)\/(?P<vtb>\d*)\/(?P<vnb>\d*)\
+	\s+(?P<vc>\d+)\/(?P<vtc>\d*)\/(?P<vnc>\d*)\
 $', re.M | re.X)
 
 Vector     = namedtuple('Vector',     'x y z')
