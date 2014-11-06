@@ -3,6 +3,7 @@
 #
 
 from collections import namedtuple
+from ledcube import Vector
 import re
 
 PARSE_OBJ_V  = re.compile('^v\
@@ -25,7 +26,6 @@ PARSE_OBJ_F  = re.compile('^f\
 	\s+(?P<vc>\d+)\/(?P<vtc>\d*)\/(?P<vnc>\d*)\
 $', re.M | re.X)
 
-Vector     = namedtuple('Vector',     'x y z')
 TexCoord   = namedtuple('TexCoord',   'u v')
 FaceVertex = namedtuple('FaceVertex', 'v t n')
 

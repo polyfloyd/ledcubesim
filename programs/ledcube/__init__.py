@@ -7,9 +7,7 @@ import os
 import socket
 import sys
 
-Dimension = namedtuple("Dimension", "x y z")
-
-def determineConnection():
+def determine_connection():
 	addr = os.getenv("CUBE_ADDR")
 	port = os.getenv("CUBE_PORT")
 
@@ -26,75 +24,42 @@ def determineConnection():
 
 	return (addr, port)
 
+Vector = namedtuple('Vector', 'x y z')
+
+
 class Cube(socket.socket):
 
-	size   = Dimension(0, 0, 0)
+	size   = Vector(0, 0, 0)
 	colors = 3
 	fps    = 0
 
-	def __init__(self, server=determineConnection()):
+	def __init__(self, server=determine_connection()):
 		super(Cube, self).__init__(socket.AF_INET, socket.SOCK_STREAM)
 		self.connect(server)
 
 		self.send(b"inf")
 		data = self.recv(4 * 3 + 1 + 1, socket.MSG_WAITALL)
-		getInt = lambda offset: int.from_bytes(data[offset:offset + 4], byteorder="little")
-		self.size = Dimension(
-		    getInt(4 * 0),
-		    getInt(4 * 1),
-		    getInt(4 * 2),
+		get_int = lambda offset: int.from_bytes(data[offset:offset + 4], byteorder="little")
+		self.size = Vector(
+			get_int(4 * 0),
+			get_int(4 * 1),
+			get_int(4 * 2),
 		)
 		self.colors = int(data[4 * 3])
 		self.fps    = int(data[4 * 3 + 1])
 
+	def set_frame(self, data, swap=True):
+		self.send(b"put")
+		self.send(data)
+		if swap:
+			self.swap()
+
+	def make_frame(self):
+		return Frame(self.size, self.colors)
+
 	def swap(self):
 		self.send(b"swp")
 
-	def frame(self, data):
-		self.send(b"put")
-		self.send(data)
-
-	def index(self, x, y, z, rgb=0):
-		x = int(x * (self.size.x - .5))
-		y = int(y * (self.size.y - .5))
-		z = int(z * (self.size.z - .5))
-		return (x*self.size.y*self.size.z + y*self.size.z + z) * self.colors + rgb
-
-	def graph2(self, func, send=True, swap=True):
-		frame = bytearray(self.length())
-		for x in range(0, self.size.x + 1):
-			x = x / self.size.x
-			for y in range(0, self.size.y + 1):
-				y = y / self.size.y
-				dot = func(x, y)
-				i   = self.index(x, y, dot[0])
-				for c in range(0, 3):
-					frame[i + c] = int(dot[1][c] * 255)
-		if send:
-			self.frame(frame)
-			if swap:
-				self.swap()
-		return frame
-
-	def graph3(self, func, send=True, swap=True):
-		frame = bytearray(self.length())
-		for x in range(0, self.size.x + 1):
-			x = x / self.size.x
-			for y in range(0, self.size.y + 1):
-				y = y / self.size.y
-				for z in range(0, self.size.z + 1):
-					z = z / self.size.z
-					vox = func(x, y, z)
-					for c in range(0, self.colors):
-						frame[self.index(x, y, z, c)] = int(vox[c] * 255)
-		if send:
-			self.frame(frame)
-			if swap:
-				self.swap()
-		return frame
-
-	def length(self):
-		return self.size.x * self.size.y * self.size.z * self.colors
 
 class Frame(bytearray):
 
@@ -103,13 +68,32 @@ class Frame(bytearray):
 		self.size            = size
 		self.bytes_per_voxel = bytes_per_voxel
 
-	def set(self, x, y, z, voxel):
-		x = int(x)
-		y = int(y)
-		z = int(z)
-		assert(x >= 0 and x < self.size.x)
-		assert(y >= 0 and y < self.size.y)
-		assert(z >= 0 and z < self.size.z)
-		i = (x * self.size.y * self.size.z + y * self.size.z + z) * self.bytes_per_voxel
-		for j in range(0, self.bytes_per_voxel):
-			self[i + j] = int(voxel[j])
+	def set(self, x, y, z, voxel, clip=True):
+		x, y, z = int(x), int(y), int(z)
+		visible = 0 <= x < self.size.x and 0 <= y < self.size.y and 0 <= z < self.size.z
+		if not visible and not clip:
+			raise IndexError("(%s, %s, %s) is outside screenspace" % (x, y, z))
+		if visible:
+			i = (x * self.size.y * self.size.z + y * self.size.z + z) * self.bytes_per_voxel
+			for j in range(0, self.bytes_per_voxel):
+				self[i + j] = int(voxel[j])
+
+	def setf(self, x, y, z, voxel):
+		self.set(x * (self.size.x - 1), y * (self.size.y - 1), z * (self.size.z - 1), voxel)
+
+	def graph2(self, func):
+		for x in range(0, self.size.x + 1):
+			xn = x / self.size.x
+			for y in range(0, self.size.y + 1):
+				yn = y / self.size.y
+				(zn, vox) = func(xn, yn)
+				self.setf(xn, yn, zn, vox)
+
+	def graph3(self, func):
+		for x in range(0, self.size.x + 1):
+			xn = x / self.size.x
+			for y in range(0, self.size.y + 1):
+				yn = y / self.size.y
+				for z in range(0, self.size.z + 1):
+					zn = z / self.size.z
+					self.setf(xn, yn, zn, func(xn, yn, zn))
