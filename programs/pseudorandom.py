@@ -6,22 +6,21 @@
 
 import ledcube
 import math
-import os
+import random
 import time
 
-STEPS = 40
-
-cube         = ledcube.Cube()
-currentFrame = bytearray(cube.length())
-targetFrame  = bytearray(cube.length())
+cube          = ledcube.Cube()
+steps         = [math.sin(i / 40 * math.pi / 2) for i in range(0, 40)]
+frame_current = cube.make_frame()
+frame_target  = cube.make_frame()
 
 while 1:
-	sourceFrame = targetFrame
-	targetFrame = os.urandom(cube.length())
-	for i in range(0, STEPS):
-		m = math.sin(i / STEPS * math.pi / 2)
-		for j in range(0, cube.length()):
-			currentFrame[j] = int(sourceFrame[j] * (1 - m) + targetFrame[j] * m)
-		cube.frame(currentFrame)
-		cube.swap()
+	frame_source = frame_target
+	frame_target = cube.make_frame()
+	for i in range(0, len(frame_target)):
+		frame_target[i] = random.randint(0, 255)
+	for m in steps:
+		for j in range(0, len(frame_target)):
+			frame_current[j] = int(frame_source[j] * (1 - m) + frame_target[j] * m)
+		cube.set_frame(frame_current)
 		time.sleep(1 / cube.fps)

@@ -8,4 +8,6 @@ import ledcube
 
 cube = ledcube.Cube()
 
-cube.graph3(lambda x, y, z: (x, y, z))
+frame = cube.make_frame()
+frame.graph3(lambda x, y, z: (x * 255, y * 255, z * 255))
+cube.set_frame(frame)

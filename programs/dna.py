@@ -33,7 +33,7 @@ for i in range(0, int(cube.size.z * BASE_DOT)):
 	colors.append([col() for _ in EDGES])
 
 while 1:
-	frame = bytearray(cube.length())
+	frame = cube.make_frame()
 	t = (t + STEP) % 1
 	for z in range(0, cube.size.z * EDGE_DOT):
 		zn = z / cube.size.z / EDGE_DOT
@@ -44,20 +44,13 @@ while 1:
 			znt = (zn + t) % 1
 			x = math.cos((znt + ang) * math.pi * EDGE_ANG)
 			y = math.sin((znt + ang) * math.pi * EDGE_ANG)
-			index = lambda x, y: cube.index(x / 2 + .5, y / 2 + .5, zn)
 
 			if z % (EDGE_DOT / BASE_DOT) == 0:
 				col = colors[int(z * BASE_DOT / EDGE_DOT)][i]
 				for j in range(0, 8):
-					j = j / 8
-					a = index(x * j, y * j)
-					for k in range(0, 3):
-						frame[a + k] = col[k]
+					jn = j / 8
+					frame.setf(x * jn / 2 + .5, y * jn / 2 + .5, zn, col)
+			frame.setf(x / 2 + .5, y / 2 + .5, zn, EDGES[i])
 
-			edge = index(x, y)
-			for j in range(0, 3):
-				frame[edge + j] = EDGES[i][j]
-
-	cube.frame(frame)
-	cube.swap()
+	cube.set_frame(frame)
 	time.sleep(1 / cube.fps)

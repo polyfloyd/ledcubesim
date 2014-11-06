@@ -6,13 +6,14 @@
 
 import ledcube
 import ledcube.model as model
-import os
 import sys
 
-model_file = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), 'res/teapot.obj')
+if len(sys.argv) <= 1:
+	print('Usage %s <obj file>' % sys.argv[0])
+	exit(1)
 
 cube = ledcube.Cube()
-mod  = model.WavefrontModel(model_file, ('x', 'z', 'y'))
+mod  = model.WavefrontModel(sys.argv[1], ('x', 'z', 'y'))
 
 frame = ledcube.Frame(cube.size, 3)
 
@@ -31,5 +32,4 @@ for face in mod.faces:
 			) if corner.n is not None else (128, 128, 255),
 		)
 
-cube.frame(frame)
-cube.swap()
+cube.set_frame(frame)

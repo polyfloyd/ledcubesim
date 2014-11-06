@@ -33,12 +33,10 @@ while True:
 		spectrum = spectrum[::len(spectrum) / 64]
 	spectrum = [math.sqrt(v) / 2 for v in spectrum]
 
-	frame = ledcube.Frame(cube.size, 3)
+	frame = cube.make_frame()
 	for x in range(0, 8):
 		for y in range(0, 8):
-			value = spectrum[x * 8 + y]
-			value = value if value < 1 else 1
-			for z in range(0, int(value * cube.size.z + 1)):
+			for z in range(0, int(spectrum[x * 8 + y] * cube.size.z + 1)):
 				zn = z / cube.size.z
 				for bx in range(0, 2):
 					for by in range(0, 2):
@@ -50,5 +48,4 @@ while True:
 							(middle if middle > 0 else 0) * 255,
 							(bottom if bottom > 0 else 0) * 255,
 						))
-	cube.frame(frame)
-	cube.swap()
+	cube.set_frame(frame)
