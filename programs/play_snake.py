@@ -22,6 +22,7 @@ grid = ledcube.Vector(
 	cube.size.y // CELL_SIZE,
 	cube.size.z // CELL_SIZE,
 )
+score  = 0
 dir    = Vector(0, 0, 0)
 target = Vector(0, 0, 0)
 body   = [Vector(grid.x  // 2, grid.y // 2, grid.z // 2)]
@@ -56,10 +57,11 @@ while util.TTYInput.worker.is_alive():
 			(body[0].z + dir.z) % grid.z,
 		))
 		if body.count(body[0]) == 2 and dir != Vector(0, 0, 0):
-			print('\rGame Over\r')
+			print('\rGame Over! Your score was %s\r' % score)
 			break
 		if target == body[0]:
 			target = Vector(random.randint(0, grid.x - 1), random.randint(0, grid.y - 1), random.randint(0, grid.z - 1))
+			score += 10
 		else:
 			body.pop()
 
