@@ -68,15 +68,31 @@ class Frame(bytearray):
 		self.size            = size
 		self.bytes_per_voxel = bytes_per_voxel
 
-	def set(self, x, y, z, voxel, clip=True):
+	def index(self, x, y, z):
 		x, y, z = int(x), int(y), int(z)
-		visible = 0 <= x < self.size.x and 0 <= y < self.size.y and 0 <= z < self.size.z
-		if not visible and not clip:
+		if 0 <= x < self.size.x and 0 <= y < self.size.y and 0 <= z < self.size.z:
+			return (x * self.size.y * self.size.z + y * self.size.z + z) * self.bytes_per_voxel
+		return -1
+
+	def get(self, x, y, z):
+		i = self.index(x, y, z)
+		if i == -1:
 			raise IndexError("(%s, %s, %s) is outside screenspace" % (x, y, z))
-		if visible:
-			i = (x * self.size.y * self.size.z + y * self.size.z + z) * self.bytes_per_voxel
+		return (self[i], self[i + 1], self[i + 2])
+
+	def set(self, x, y, z, voxel, clip=True):
+		i = self.index(x, y, z)
+		if i != -1:
 			for j in range(0, self.bytes_per_voxel):
 				self[i + j] = int(voxel[j])
+		elif not clip:
+			raise IndexError("(%s, %s, %s) is outside screenspace" % (x, y, z))
+
+	def indexf(self, x, y, z):
+		return self.indexf(x * (self.size.x - 1), y * (self.size.y - 1), z * (self.size.z - 1))
+
+	def getf(self, x, y, z):
+		return self.get(x * (self.size.x - 1), y * (self.size.y - 1), z * (self.size.z - 1))
 
 	def setf(self, x, y, z, voxel):
 		self.set(x * (self.size.x - 1), y * (self.size.y - 1), z * (self.size.z - 1), voxel)
