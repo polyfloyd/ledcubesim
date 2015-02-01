@@ -29,7 +29,8 @@ $', re.M | re.X)
 TexCoord   = namedtuple('TexCoord',   'u v')
 FaceVertex = namedtuple('FaceVertex', 'v t n')
 
-class WavefrontModel:
+
+class WavefrontModel(object):
 
 	def __init__(self, obj_file, axismap=('x', 'y', 'z')):
 		obj = open(obj_file).read()
@@ -40,15 +41,17 @@ class WavefrontModel:
 			x, y, z = float(d[axismap[0]]), float(d[axismap[1]]), float(d[axismap[2]])
 			if firstvertex_flag:
 				firstvertex_flag = False
-				self.min_x = self.max_x = x
-				self.min_y = self.max_y = y
-				self.min_z = self.max_z = z
-			self.min_x = min(self.min_x, x)
-			self.min_y = min(self.min_y, y)
-			self.min_z = min(self.min_z, z)
-			self.max_x = max(self.max_x, x)
-			self.max_y = max(self.max_y, y)
-			self.max_z = max(self.max_z, z)
+				self.min = self.max = Vector(x, y, z)
+			self.min = Vector(
+				min(self.min.x, x),
+				min(self.min.y, y),
+				min(self.min.z, z),
+			)
+			self.max = Vector(
+				max(self.max.x, x),
+				max(self.max.y, y),
+				max(self.max.z, z),
+			)
 			return Vector(x, y, z)
 		vertices = [parse_v(m.groupdict()) for m in PARSE_OBJ_V.finditer(obj)]
 
