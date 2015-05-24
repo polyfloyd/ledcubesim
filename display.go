@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"math"
 	"runtime"
-	gl     "github.com/go-gl/gl"
+	gl     "github.com/go-gl-legacy/gl"
 	glfw   "github.com/go-gl/glfw3"
 	mathgl "github.com/go-gl/mathgl/mgl32"
 )
