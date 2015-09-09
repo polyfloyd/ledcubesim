@@ -6,20 +6,20 @@ package main
 
 import (
 	"fmt"
+	gl "github.com/go-gl-legacy/gl"
+	glfw "github.com/go-gl/glfw/v3.1/glfw"
+	mathgl "github.com/go-gl/mathgl/mgl32"
 	"math"
 	"runtime"
-	gl     "github.com/go-gl-legacy/gl"
-	glfw   "github.com/go-gl/glfw3"
-	mathgl "github.com/go-gl/mathgl/mgl32"
 )
 
 type Display struct {
 	Buffer  []float32
 	HideOff bool
 
-	CubeHeight  int
-	CubeLength  int
-	CubeWidth   int
+	CubeHeight int
+	CubeLength int
+	CubeWidth  int
 
 	camRot  mathgl.Quat
 	camZoom float32
@@ -38,8 +38,8 @@ func NewDisplay(w, h, l, detail int) *Display {
 		CubeHeight:  h,
 		CubeLength:  l,
 		CubeWidth:   w,
-		Buffer:      make([]float32, w*h*l * 3),
-		frontBuffer: make([]float32, w*h*l * 3),
+		Buffer:      make([]float32, w*h*l*3),
+		frontBuffer: make([]float32, w*h*l*3),
 		detail:      detail,
 	}
 	disp.ResetView()
@@ -51,9 +51,9 @@ func (disp *Display) Start() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	for i := 0; i < len(disp.frontBuffer); i += 3 {
-		disp.frontBuffer[i + 0] = 0.0
-		disp.frontBuffer[i + 1] = 0.4
-		disp.frontBuffer[i + 2] = 1.0
+		disp.frontBuffer[i+0] = 0.0
+		disp.frontBuffer[i+1] = 0.4
+		disp.frontBuffer[i+2] = 1.0
 	}
 
 	if err := disp.init(); err != nil {
@@ -61,7 +61,7 @@ func (disp *Display) Start() {
 	}
 
 	for !disp.win.ShouldClose() {
-		if (disp.shouldSwapBuffers) {
+		if disp.shouldSwapBuffers {
 			disp.frontBuffer, disp.Buffer = disp.Buffer, disp.frontBuffer
 			disp.shouldSwapBuffers = false
 		}
@@ -78,7 +78,7 @@ func (disp *Display) Start() {
 
 func (disp *Display) render() {
 	uniformColor := disp.shader.GetUniformLocation("color_led")
-	uniformMVP   := disp.shader.GetUniformLocation("mat_mvp")
+	uniformMVP := disp.shader.GetUniformLocation("mat_mvp")
 
 	projection := mathgl.Perspective(
 		UI_FOVY,
@@ -89,7 +89,7 @@ func (disp *Display) render() {
 		UI_ZFAR,
 	)
 	center := mathgl.Translate3D(
-		-(UI_SPACING*float32(disp.CubeWidth)/2  - UI_SPACING/2),
+		-(UI_SPACING*float32(disp.CubeWidth)/2 - UI_SPACING/2),
 		-(UI_SPACING*float32(disp.CubeHeight)/2 - UI_SPACING/2),
 		-(UI_SPACING*float32(disp.CubeLength)/2 - UI_SPACING/2),
 	)
@@ -104,23 +104,23 @@ func (disp *Display) render() {
 		for y := 0; y < disp.CubeLength; y++ {
 			for z := 0; z < disp.CubeHeight; z++ {
 				i := x*disp.CubeLength*disp.CubeHeight + y*disp.CubeHeight + z
-				r := disp.frontBuffer[i*3 + 0]
-				g := disp.frontBuffer[i*3 + 1]
-				b := disp.frontBuffer[i*3 + 2]
-				if disp.HideOff && (r==0 && g==0 && b==0) {
+				r := disp.frontBuffer[i*3+0]
+				g := disp.frontBuffer[i*3+1]
+				b := disp.frontBuffer[i*3+2]
+				if disp.HideOff && (r == 0 && g == 0 && b == 0) {
 					continue
 				}
 
 				model := mathgl.Translate3D(
-					float32(x) * UI_SPACING,
-					float32(z) * UI_SPACING,
-					float32(y) * UI_SPACING,
-				).Mul4(center);
+					float32(x)*UI_SPACING,
+					float32(z)*UI_SPACING,
+					float32(y)*UI_SPACING,
+				).Mul4(center)
 
 				mvp := projection.Mul4(view).Mul4(model)
 				uniformMVP.UniformMatrix4f(false, (*[16]float32)(&mvp))
 				uniformColor.Uniform3f(r, g, b)
-				gl.DrawArrays(gl.TRIANGLES, 0, disp.voxelLen);
+				gl.DrawArrays(gl.TRIANGLES, 0, disp.voxelLen)
 			}
 		}
 	}
@@ -130,8 +130,8 @@ func (disp *Display) init() error {
 	//
 	// Initialize GLFW and create a window
 	//
-	if !glfw.Init() {
-		panic("Can't init GLFW!")
+	if err := glfw.Init(); err != nil {
+		panic(err)
 	}
 	var err error
 	disp.win, err = glfw.CreateWindow(UI_WIN_W, UI_WIN_H, INFO, nil, nil)
@@ -152,14 +152,14 @@ func (disp *Display) init() error {
 	var dragButtonDown bool
 	var mousePosLastX float64
 	var mousePosLastY float64
-	disp.win.SetCursorPositionCallback(func(_ *glfw.Window, x, y float64) {
+	disp.win.SetCursorPosCallback(func(_ *glfw.Window, x, y float64) {
 		deltaX := x - mousePosLastX
 		deltaY := y - mousePosLastY
 		mousePosLastX = x
 		mousePosLastY = y
-		if (dragButtonDown) {
-			disp.camRot = mathgl.QuatRotate(float32(deltaX) / UI_DRAGDIV, mathgl.Vec3{0, 1, 0}).Mul(disp.camRot)
-			disp.camRot = mathgl.QuatRotate(float32(deltaY) / UI_DRAGDIV, mathgl.Vec3{1, 0, 0}).Mul(disp.camRot)
+		if dragButtonDown {
+			disp.camRot = mathgl.QuatRotate(float32(deltaX)/UI_DRAGDIV, mathgl.Vec3{0, 1, 0}).Mul(disp.camRot)
+			disp.camRot = mathgl.QuatRotate(float32(deltaY)/UI_DRAGDIV, mathgl.Vec3{1, 0, 0}).Mul(disp.camRot)
 		}
 	})
 	disp.win.SetMouseButtonCallback(func(_ *glfw.Window, button glfw.MouseButton,
@@ -171,10 +171,12 @@ func (disp *Display) init() error {
 	})
 	disp.win.SetKeyCallback(func(_ *glfw.Window, key glfw.Key, scancode int,
 		action glfw.Action, mods glfw.ModifierKey) {
-		if (action != glfw.Release) {
-			switch(key) {
-			case glfw.KeyS: disp.HideOff = !disp.HideOff
-			case glfw.KeyR: disp.ResetView()
+		if action != glfw.Release {
+			switch key {
+			case glfw.KeyS:
+				disp.HideOff = !disp.HideOff
+			case glfw.KeyR:
+				disp.ResetView()
 			}
 		}
 	})
@@ -202,9 +204,13 @@ func (disp *Display) init() error {
 		return sh, nil
 	}
 	vx, err := compileShader(gl.VERTEX_SHADER, vertexShaderSource)
-	if (err != nil) { return err }
+	if err != nil {
+		return err
+	}
 	fg, err := compileShader(gl.FRAGMENT_SHADER, fragmentShaderSource)
-	if (err != nil) { return err }
+	if err != nil {
+		return err
+	}
 	disp.shader = gl.CreateProgram()
 	disp.shader.AttachShader(vx)
 	disp.shader.AttachShader(fg)
@@ -225,7 +231,7 @@ func (disp *Display) init() error {
 	bufferData := getVoxelBuffer(disp.detail)
 	disp.voxelBuffer = gl.GenBuffer()
 	disp.voxelBuffer.Bind(gl.ARRAY_BUFFER)
-	disp.voxelLen = len(bufferData)*3
+	disp.voxelLen = len(bufferData) * 3
 	gl.BufferData(gl.ARRAY_BUFFER, disp.voxelLen*4, bufferData, gl.STATIC_DRAW)
 	attribVert := disp.shader.GetAttribLocation("voxel")
 	attribVert.EnableArray()
@@ -242,7 +248,7 @@ func (disp *Display) init() error {
 }
 
 func (disp *Display) NumVoxels() int {
-	return disp.CubeHeight*disp.CubeLength*disp.CubeWidth
+	return disp.CubeHeight * disp.CubeLength * disp.CubeWidth
 }
 
 func (disp *Display) SwapBuffers() {
@@ -250,47 +256,47 @@ func (disp *Display) SwapBuffers() {
 }
 
 func (disp *Display) ResetView() {
-	disp.camRot  = mathgl.QuatIdent()
+	disp.camRot = mathgl.QuatIdent()
 	disp.camZoom = -160
 }
 
 func getVoxelBuffer(detail int) []mathgl.Vec3 {
-	ico := float32(1 + math.Sqrt(5)) / 2
+	ico := float32(1+math.Sqrt(5)) / 2
 	verts := []mathgl.Vec3{
-		{-1.0,  ico,  0.0},
-		{ 1.0,  ico,  0.0},
-		{-1.0, -ico,  0.0},
-		{ 1.0, -ico,  0.0},
-		{ 0.0, -1.0,  ico},
-		{ 0.0,  1.0,  ico},
-		{ 0.0, -1.0, -ico},
-		{ 0.0,  1.0, -ico},
-		{ ico,  0.0, -1.0},
-		{ ico,  0.0,  1.0},
-		{-ico,  0.0, -1.0},
-		{-ico,  0.0,  1.0},
+		{-1.0, ico, 0.0},
+		{1.0, ico, 0.0},
+		{-1.0, -ico, 0.0},
+		{1.0, -ico, 0.0},
+		{0.0, -1.0, ico},
+		{0.0, 1.0, ico},
+		{0.0, -1.0, -ico},
+		{0.0, 1.0, -ico},
+		{ico, 0.0, -1.0},
+		{ico, 0.0, 1.0},
+		{-ico, 0.0, -1.0},
+		{-ico, 0.0, 1.0},
 	}
 	polys := []int{
-		0,  11, 5,
-		0,  5,  1,
-		0,  1,  7,
-		0,  7,  10,
-		0,  10, 11,
-		1,  5,  9,
-		5,  11, 4,
+		0, 11, 5,
+		0, 5, 1,
+		0, 1, 7,
+		0, 7, 10,
+		0, 10, 11,
+		1, 5, 9,
+		5, 11, 4,
 		11, 10, 2,
-		10, 7,  6,
-		7,  1,  8,
-		3,  9,  4,
-		3,  4,  2,
-		3,  2,  6,
-		3,  6,  8,
-		3,  8,  9,
-		4,  9,  5,
-		2,  4,  11,
-		6,  2,  10,
-		8,  6,  7,
-		9,  8,  1,
+		10, 7, 6,
+		7, 1, 8,
+		3, 9, 4,
+		3, 4, 2,
+		3, 2, 6,
+		3, 6, 8,
+		3, 8, 9,
+		4, 9, 5,
+		2, 4, 11,
+		6, 2, 10,
+		8, 6, 7,
+		9, 8, 1,
 	}
 	bufferData := make([]mathgl.Vec3, len(polys))[:0]
 	for _, p := range polys {
@@ -299,12 +305,12 @@ func getVoxelBuffer(detail int) []mathgl.Vec3 {
 	}
 	var tessellate func(data []mathgl.Vec3, level int) []mathgl.Vec3
 	tessellate = func(data []mathgl.Vec3, level int) []mathgl.Vec3 {
-		if (level == 0) {
+		if level == 0 {
 			return data
 		}
 		newData := make([]mathgl.Vec3, len(data)*3)[:0]
 		for i := 0; i < len(data); i += 3 {
-			old := data[i:i+3]
+			old := data[i : i+3]
 			new := [3]mathgl.Vec3{}
 			for j := range old {
 				a := data[i+j]

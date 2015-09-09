@@ -1,6 +1,7 @@
-/ledcubesim
-/README.html
+*~
+*.pyc
+*.swp
+*.swo
 __pycache__
-**.pyc
-**.swp
-**~
+/bin
+/lib
