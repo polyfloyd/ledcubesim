@@ -3,7 +3,7 @@ LEDCube Simulator
 
 This is a simulator I made for creating and testing programs for my LEDCube project.
 
-![Screenshot](http://polyfloyd.net/data/file/2fXWXtC11jvuYbexDjmXTg/LEDCube%20Sim%20Screenshot.png)
+![Screenshot](screenshots/screenshot.png)
 
 
 ## Building
