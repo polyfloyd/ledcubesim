@@ -50,7 +50,7 @@ func NewDisplay(w, h, l, detail int) *Display {
 	return disp
 }
 
-func (disp *Display) Start() {
+func (disp *Display) Run() {
 	runtime.LockOSThread()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 

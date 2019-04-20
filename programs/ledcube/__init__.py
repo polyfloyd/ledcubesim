@@ -3,75 +3,37 @@
 #
 
 from collections import namedtuple
-import os
 import socket
 import sys
 
-def determine_connection():
-    addr = os.getenv("CUBE_ADDR")
-    port = os.getenv("CUBE_PORT")
-
-    for (i, arg) in enumerate(sys.argv[1:]):
-        if arg == "-a":
-            addr = sys.argv[i + 2]
-        elif arg == "-p":
-            port = int(sys.argv[i + 2])
-
-    if not addr:
-        addr = "127.0.0.1"
-    if not port:
-        port = 54746
-
-    return (addr, port)
-
 Vector = namedtuple('Vector', 'x y z')
 
-
 class Cube(socket.socket):
-
-    size   = Vector(0, 0, 0)
-    colors = 3
-    fps    = 0
-
-    def __init__(self, server=determine_connection()):
-        super(Cube, self).__init__(socket.AF_INET, socket.SOCK_STREAM)
-        self.connect(server)
-
-        self.send(b"inf")
-        data = self.recv(4 * 3 + 1 + 1, socket.MSG_WAITALL)
-        get_int = lambda offset: int.from_bytes(data[offset:offset + 4], byteorder="little")
-        self.size = Vector(
-            get_int(4 * 0),
-            get_int(4 * 1),
-            get_int(4 * 2),
-        )
-        self.colors = int(data[4 * 3])
-        self.fps    = int(data[4 * 3 + 1])
+    def __init__(self):
+        self.size   = Vector(16, 16, 16)
+        self.fps    = 60
 
     def set_frame(self, data, swap=True):
-        self.send(b"put")
-        self.send(data)
+        self._data = data
         if swap:
             self.swap()
 
     def make_frame(self):
-        return Frame(self.size, self.colors)
+        return Frame(self.size)
 
     def swap(self):
-        self.send(b"swp")
+        sys.stdout.buffer.write(self._data)
 
 
 class Frame(bytearray):
-
-    def __init__(self, size, bytes_per_voxel):
-        super(Frame, self).__init__(size.x * size.y * size.z * bytes_per_voxel)
-        self.size            = size
-        self.bytes_per_voxel = bytes_per_voxel
+    def __init__(self, size):
+        super(Frame, self).__init__(size.x * size.y * size.z * 3)
+        self.size = size
 
     def index(self, x, y, z):
         x, y, z = int(x), int(y), int(z)
         if 0 <= x < self.size.x and 0 <= y < self.size.y and 0 <= z < self.size.z:
-            return (x * self.size.y * self.size.z + y * self.size.z + z) * self.bytes_per_voxel
+            return (x * self.size.y * self.size.z + y * self.size.z + z) * 3
         return -1
 
     def get(self, x, y, z):
@@ -83,7 +45,7 @@ class Frame(bytearray):
     def set(self, x, y, z, voxel, clip=True):
         i = self.index(x, y, z)
         if i != -1:
-            for j in range(0, self.bytes_per_voxel):
+            for j in range(0, 3):
                 self[i + j] = int(voxel[j])
         elif not clip:
             raise IndexError("(%s, %s, %s) is outside screenspace" % (x, y, z))
