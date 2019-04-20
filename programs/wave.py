@@ -14,18 +14,18 @@ SPEED_Y = 0.01
 cube = ledcube.Cube()
 
 def wave(x, y, xt, yt):
-	n = lambda a, t: (a + t) % 1 * 2 - 1
-	zx  = math.cos(n(x / 2, xt) * math.pi)
-	zy  = math.sin(n(y / 2, yt) * math.pi)
-	z = (zx * zy + 1) / 2
-	return (z, (0, z * 255, (1 - z) * 255))
+    n = lambda a, t: (a + t) % 1 * 2 - 1
+    zx  = math.cos(n(x / 2, xt) * math.pi)
+    zy  = math.sin(n(y / 2, yt) * math.pi)
+    z = (zx * zy + 1) / 2
+    return (z, (0, z * 255, (1 - z) * 255))
 
 xt = 0
 yt = 0
 while (1):
-	xt = (xt + SPEED_X) % 1
-	yt = (yt + SPEED_Y) % 1
-	frame = cube.make_frame()
-	frame.graph2(lambda x, y: wave(x, y, xt, yt))
-	cube.set_frame(frame)
-	time.sleep(1 / cube.fps)
+    xt = (xt + SPEED_X) % 1
+    yt = (yt + SPEED_Y) % 1
+    frame = cube.make_frame()
+    frame.graph2(lambda x, y: wave(x, y, xt, yt))
+    cube.set_frame(frame)
+    time.sleep(1 / cube.fps)
