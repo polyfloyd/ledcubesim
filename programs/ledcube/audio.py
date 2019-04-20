@@ -2,15 +2,12 @@
 # Copyright (c) 2014 PolyFloyd
 #
 
-import io
 import numpy.fft
 import os
-import pyaudio
 
 class Source:
 
     def get_spectrum(self, signal):
-        n = len(signal)
         signal   = numpy.array([(s + 1) / 2 for s in signal], dtype=float)
         spectrum = numpy.abs(numpy.fft.rfft(signal))
         freqs    = numpy.fft.fftfreq(spectrum.size, 1 / self.get_sample_rate())
