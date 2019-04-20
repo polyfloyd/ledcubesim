@@ -6,11 +6,15 @@ package main
 
 import (
 	"fmt"
-	gl "github.com/go-gl-legacy/gl"
-	glfw "github.com/go-gl/glfw/v3.1/glfw"
-	mathgl "github.com/go-gl/mathgl/mgl32"
+	"log"
 	"math"
 	"runtime"
+	"strings"
+	"unsafe"
+
+	gl "github.com/go-gl/gl/v3.3-core/gl"
+	glfw "github.com/go-gl/glfw/v3.2/glfw"
+	mathgl "github.com/go-gl/mathgl/mgl32"
 )
 
 type Display struct {
@@ -26,9 +30,9 @@ type Display struct {
 
 	detail            int
 	frontBuffer       []float32
-	shader            gl.Program
+	shader            uint32
 	shouldSwapBuffers bool
-	voxelBuffer       gl.Buffer
+	voxelBuffer       uint32
 	voxelLen          int
 	win               *glfw.Window
 }
@@ -77,8 +81,8 @@ func (disp *Display) Start() {
 }
 
 func (disp *Display) render() {
-	uniformColor := disp.shader.GetUniformLocation("color_led")
-	uniformMVP := disp.shader.GetUniformLocation("mat_mvp")
+	uniformColor := gl.GetUniformLocation(disp.shader, gl.Str("color_led\x00"))
+	uniformMVP := gl.GetUniformLocation(disp.shader, gl.Str("mat_mvp\x00"))
 
 	projection := mathgl.Perspective(
 		UI_FOVY,
@@ -118,37 +122,58 @@ func (disp *Display) render() {
 				).Mul4(center)
 
 				mvp := projection.Mul4(view).Mul4(model)
-				uniformMVP.UniformMatrix4f(false, (*[16]float32)(&mvp))
-				uniformColor.Uniform3f(r, g, b)
-				gl.DrawArrays(gl.TRIANGLES, 0, disp.voxelLen)
+				gl.UniformMatrix4fv(uniformMVP, 1, false, (*float32)(&mvp[0]))
+				gl.Uniform3f(uniformColor, r, g, b)
+				gl.DrawArrays(gl.TRIANGLES, 0, int32(disp.voxelLen))
 			}
 		}
 	}
 }
 
 func (disp *Display) init() error {
-	//
 	// Initialize GLFW and create a window
-	//
 	if err := glfw.Init(); err != nil {
-		panic(err)
+		return err
 	}
 	var err error
 	disp.win, err = glfw.CreateWindow(UI_WIN_W, UI_WIN_H, INFO, nil, nil)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	disp.win.MakeContextCurrent()
-	resize := func(w, h int) { gl.Viewport(0, 0, w, h) }
+	if err := gl.Init(); err != nil {
+		return err
+	}
+
+	gl.Enable(gl.DEBUG_OUTPUT)
+	gl.DebugMessageControl(gl.DONT_CARE, gl.DONT_CARE, gl.DONT_CARE, 0, nil, true)
+	gl.DebugMessageCallback(func(source uint32, typ uint32, id uint32, severity uint32, length int32, message string, userParam unsafe.Pointer) {
+		var sevStr string
+		switch severity {
+		case gl.DEBUG_SEVERITY_HIGH:
+			sevStr = "high"
+		case gl.DEBUG_SEVERITY_MEDIUM:
+			sevStr = "medium"
+		case gl.DEBUG_SEVERITY_LOW:
+			sevStr = "low"
+		case gl.DEBUG_SEVERITY_NOTIFICATION:
+			sevStr = "note"
+		}
+		if severity == gl.DEBUG_SEVERITY_HIGH {
+			log.Fatalf("OpenGL [%s] %s", sevStr, message)
+		} else {
+			log.Printf("OpenGL [%s] %s", sevStr, message)
+		}
+	}, nil)
+
+	resize := func(w, h int) { gl.Viewport(0, 0, int32(w), int32(h)) }
 	disp.win.SetSizeCallback(func(win *glfw.Window, w, h int) {
 		resize(w, h)
 	})
 	resize(disp.win.GetSize())
 	glfw.SwapInterval(1)
 
-	//
 	// Initialize user input
-	//
 	var dragButtonDown bool
 	var mousePosLastX float64
 	var mousePosLastY float64
@@ -181,27 +206,29 @@ func (disp *Display) init() error {
 		}
 	})
 
-	//
 	// Initialize OpenGL
-	//
-	if gl.Init() != gl.FALSE {
-		return fmt.Errorf("Could not initialize OpenGL")
-	}
 	gl.Enable(gl.DEPTH_TEST)
 	gl.ClearColor(0.12, 0.12, 0.12, 1.0)
 
-	//
 	// Compile the voxel shader
-	//
-	compileShader := func(typ gl.GLenum, src string) (gl.Shader, error) {
-		sh := gl.CreateShader(typ)
-		sh.Source(src)
-		sh.Compile()
-		if sh.Get(gl.COMPILE_STATUS) == gl.FALSE {
-			sh.Delete()
-			return 0, fmt.Errorf(sh.GetInfoLog())
+	compileShader := func(typ uint32, src string) (uint32, error) {
+		shader := gl.CreateShader(typ)
+		csources, free := gl.Strs(src + "\x00")
+		gl.ShaderSource(shader, 1, csources, nil)
+		free()
+		gl.CompileShader(shader)
+
+		var status int32
+		gl.GetShaderiv(shader, gl.COMPILE_STATUS, &status)
+		if status == gl.FALSE {
+			var logLen int32
+			gl.GetShaderiv(shader, gl.INFO_LOG_LENGTH, &logLen)
+			log := strings.Repeat("\x00", int(logLen+1))
+			gl.GetShaderInfoLog(shader, logLen, nil, gl.Str(log))
+			gl.DeleteShader(shader)
+			return 0, fmt.Errorf("%s", log)
 		}
-		return sh, nil
+		return shader, nil
 	}
 	vx, err := compileShader(gl.VERTEX_SHADER, vertexShaderSource)
 	if err != nil {
@@ -211,38 +238,42 @@ func (disp *Display) init() error {
 	if err != nil {
 		return err
 	}
+
 	disp.shader = gl.CreateProgram()
-	disp.shader.AttachShader(vx)
-	disp.shader.AttachShader(fg)
-	disp.shader.Link()
-	disp.shader.DetachShader(vx)
-	disp.shader.DetachShader(fg)
-	vx.Delete()
-	fg.Delete()
-	if disp.shader.Get(gl.LINK_STATUS) == gl.FALSE {
-		disp.shader.Delete()
-		return fmt.Errorf(disp.shader.GetInfoLog())
+	gl.AttachShader(disp.shader, vx)
+	gl.AttachShader(disp.shader, fg)
+	gl.LinkProgram(disp.shader)
+	gl.DetachShader(disp.shader, vx)
+	gl.DetachShader(disp.shader, fg)
+	gl.DeleteShader(vx)
+	gl.DeleteShader(fg)
+	var status int32
+	gl.GetProgramiv(disp.shader, gl.LINK_STATUS, &status)
+	if status == gl.FALSE {
+		var logLen int32
+		gl.GetProgramiv(disp.shader, gl.INFO_LOG_LENGTH, &logLen)
+		log := strings.Repeat("\x00", int(logLen+1))
+		gl.GetProgramInfoLog(disp.shader, logLen, nil, gl.Str(log))
+		return fmt.Errorf("%s", log)
 	}
-	disp.shader.Use()
 
-	//
+	gl.UseProgram(disp.shader)
+
 	// Generate and initialize the voxel model
-	//
 	bufferData := getVoxelBuffer(disp.detail)
-	disp.voxelBuffer = gl.GenBuffer()
-	disp.voxelBuffer.Bind(gl.ARRAY_BUFFER)
+	gl.GenBuffers(1, &disp.voxelBuffer)
+	gl.BindBuffer(gl.ARRAY_BUFFER, disp.voxelBuffer)
 	disp.voxelLen = len(bufferData) * 3
-	gl.BufferData(gl.ARRAY_BUFFER, disp.voxelLen*4, bufferData, gl.STATIC_DRAW)
-	attribVert := disp.shader.GetAttribLocation("voxel")
-	attribVert.EnableArray()
-	attribVert.AttribPointer(3, gl.FLOAT, false, 3*4, uintptr(0))
+	gl.BufferData(gl.ARRAY_BUFFER, disp.voxelLen*4, gl.Ptr(&bufferData[0][0]), gl.STATIC_DRAW)
+	attribVert := uint32(gl.GetAttribLocation(disp.shader, gl.Str("voxel\x00")))
+	gl.EnableVertexAttribArray(attribVert)
+	gl.VertexAttribPointer(attribVert, 3, gl.FLOAT, false, 3*4, nil)
 
-	//
 	// Initialize the shader by setting some constant uniforms
-	//
-	disp.shader.GetUniformLocation("light_color").Uniform3f(0.15, 0.15, 0.15)
-	disp.shader.GetUniformLocation("light_vec").Uniform3f(mathgl.Vec3{1, 1, 1}.Normalize().Elem())
-	disp.shader.GetUniformLocation("voxel_radius").Uniform1f(1)
+	gl.Uniform3f(gl.GetUniformLocation(disp.shader, gl.Str("light_color\x00")), 0.15, 0.15, 0.15)
+	lx, ly, lz := mathgl.Vec3{1, 1, 1}.Normalize().Elem()
+	gl.Uniform3f(gl.GetUniformLocation(disp.shader, gl.Str("light_vec\x00")), lx, ly, lz)
+	gl.Uniform1f(gl.GetUniformLocation(disp.shader, gl.Str("voxel_radius\x00")), 1)
 
 	return nil
 }
