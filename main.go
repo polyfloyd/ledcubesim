@@ -26,10 +26,15 @@ func main() {
 	cx := flag.Int("cx", 16, "The width of the cube")
 	cy := flag.Int("cy", 16, "The length of the cube")
 	cz := flag.Int("cz", 16, "The height of the cube")
+	c := flag.Int("c", 0, "Set all dimensions to the same size")
 	detail := flag.Int("detail", 1, "The level of detail")
 	flag.Parse()
 
-	disp := NewDisplay(*cx, *cy, *cz, *detail)
+	x, y, z := *cx, *cy, *cz
+	if *c != 0 {
+		x, y, z = *c, *c, *c
+	}
+	disp := NewDisplay(x, y, z, *detail)
 
 	go func() {
 		buf := make([]byte, disp.NumVoxels()*3)
