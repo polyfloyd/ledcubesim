@@ -25,7 +25,8 @@ type Display struct {
 	camRot  mathgl.Quat
 	camZoom float32
 
-	swap chan []float32
+	swap      chan []float32
+	showBlack bool
 
 	voxelLen int
 	shader   uint32
@@ -42,6 +43,7 @@ func NewDisplay(w, h, l int) *Display {
 		CubeLength: l,
 		CubeWidth:  w,
 		swap:       make(chan []float32, 1),
+		showBlack:  true,
 	}
 	disp.ResetView()
 	return disp
@@ -77,6 +79,7 @@ func (disp *Display) Run() {
 func (disp *Display) render() {
 	uniformView := gl.GetUniformLocation(disp.shader, gl.Str("view\x00"))
 	uniformProjection := gl.GetUniformLocation(disp.shader, gl.Str("projection\x00"))
+	uniformShowBlack := gl.GetUniformLocation(disp.shader, gl.Str("show_black\x00"))
 
 	projection := mathgl.Perspective(
 		UI_FOVY,
@@ -94,6 +97,12 @@ func (disp *Display) render() {
 	}()
 	gl.UniformMatrix4fv(uniformView, 1, false, (*float32)(&view[0]))
 	gl.UniformMatrix4fv(uniformProjection, 1, false, (*float32)(&projection[0]))
+
+	if disp.showBlack {
+		gl.Uniform1f(uniformShowBlack, 1)
+	} else {
+		gl.Uniform1f(uniformShowBlack, 0)
+	}
 
 	gl.UseProgram(disp.shader)
 	gl.BindVertexArray(disp.vertVAO)
@@ -174,6 +183,8 @@ func (disp *Display) init() error {
 			switch key {
 			case glfw.KeyR:
 				disp.ResetView()
+			case glfw.KeyS:
+				disp.ToggleShowBlack()
 			}
 		}
 	})
@@ -289,6 +300,10 @@ func (disp *Display) Show(frame []float32) {
 func (disp *Display) ResetView() {
 	disp.camRot = mathgl.QuatIdent()
 	disp.camZoom = -160
+}
+
+func (disp *Display) ToggleShowBlack() {
+	disp.showBlack = !disp.showBlack
 }
 
 func getVoxelBuffer(detail int) []mathgl.Vec3 {
@@ -418,11 +433,15 @@ const fragmentShaderSource = `
 
 	uniform vec3 light_color;
 	uniform vec3 light_vec;
+	uniform float show_black;
 
 	in vec3 fNormal;
 	in vec3 fColor;
 
 	void main() {
+		if (fColor.r + fColor.g + fColor.b + show_black < 1e-18) {
+			discard;
+		}
 		float cosTheta = clamp(dot(fNormal, light_vec), 0, 1);
 		gl_FragColor = vec4(fColor + light_color * cosTheta, 1.0);
 	}
