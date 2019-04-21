@@ -18,9 +18,6 @@ import (
 )
 
 type Display struct {
-	Buffer  []float32
-	HideOff bool
-
 	CubeHeight int
 	CubeLength int
 	CubeWidth  int
@@ -28,23 +25,23 @@ type Display struct {
 	camRot  mathgl.Quat
 	camZoom float32
 
-	detail            int
-	frontBuffer       []float32
-	shader            uint32
-	shouldSwapBuffers bool
-	voxelBuffer       uint32
-	voxelLen          int
-	win               *glfw.Window
+	swap chan []float32
+
+	voxelLen int
+	shader   uint32
+	win      *glfw.Window
+
+	vertVAO, vertVBO uint32
+	colorVBO         uint32
+	translationVBO   uint32
 }
 
-func NewDisplay(w, h, l, detail int) *Display {
+func NewDisplay(w, h, l int) *Display {
 	disp := &Display{
-		CubeHeight:  h,
-		CubeLength:  l,
-		CubeWidth:   w,
-		Buffer:      make([]float32, w*h*l*3),
-		frontBuffer: make([]float32, w*h*l*3),
-		detail:      detail,
+		CubeHeight: h,
+		CubeLength: l,
+		CubeWidth:  w,
+		swap:       make(chan []float32, 1),
 	}
 	disp.ResetView()
 	return disp
@@ -54,20 +51,17 @@ func (disp *Display) Run() {
 	runtime.LockOSThread()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	for i := 0; i < len(disp.frontBuffer); i += 3 {
-		disp.frontBuffer[i+0] = 0.0
-		disp.frontBuffer[i+1] = 0.4
-		disp.frontBuffer[i+2] = 1.0
-	}
-
 	if err := disp.init(); err != nil {
 		panic(err)
 	}
 
 	for !disp.win.ShouldClose() {
-		if disp.shouldSwapBuffers {
-			disp.frontBuffer, disp.Buffer = disp.Buffer, disp.frontBuffer
-			disp.shouldSwapBuffers = false
+		select {
+		case f := <-disp.swap:
+			gl.BindBuffer(gl.ARRAY_BUFFER, disp.colorVBO)
+			gl.BufferSubData(gl.ARRAY_BUFFER, 0, len(f)*4, gl.Ptr(&f[0]))
+			gl.BindBuffer(gl.ARRAY_BUFFER, 0)
+		default:
 		}
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
@@ -81,8 +75,8 @@ func (disp *Display) Run() {
 }
 
 func (disp *Display) render() {
-	uniformColor := gl.GetUniformLocation(disp.shader, gl.Str("color_led\x00"))
-	uniformMVP := gl.GetUniformLocation(disp.shader, gl.Str("mat_mvp\x00"))
+	uniformView := gl.GetUniformLocation(disp.shader, gl.Str("view\x00"))
+	uniformProjection := gl.GetUniformLocation(disp.shader, gl.Str("projection\x00"))
 
 	projection := mathgl.Perspective(
 		UI_FOVY,
@@ -92,42 +86,19 @@ func (disp *Display) render() {
 		UI_ZNEAR,
 		UI_ZFAR,
 	)
-	center := mathgl.Translate3D(
-		-(UI_SPACING*float32(disp.CubeWidth)/2 - UI_SPACING/2),
-		-(UI_SPACING*float32(disp.CubeHeight)/2 - UI_SPACING/2),
-		-(UI_SPACING*float32(disp.CubeLength)/2 - UI_SPACING/2),
-	)
 	view := func() mathgl.Mat4 {
 		m := mathgl.Ident4()
 		m = m.Mul4(mathgl.Translate3D(0, 0, disp.camZoom))
 		m = m.Mul4(disp.camRot.Mat4())
 		return m
 	}()
+	gl.UniformMatrix4fv(uniformView, 1, false, (*float32)(&view[0]))
+	gl.UniformMatrix4fv(uniformProjection, 1, false, (*float32)(&projection[0]))
 
-	for x := 0; x < disp.CubeWidth; x++ {
-		for y := 0; y < disp.CubeLength; y++ {
-			for z := 0; z < disp.CubeHeight; z++ {
-				i := x*disp.CubeLength*disp.CubeHeight + y*disp.CubeHeight + z
-				r := disp.frontBuffer[i*3+0]
-				g := disp.frontBuffer[i*3+1]
-				b := disp.frontBuffer[i*3+2]
-				if disp.HideOff && (r == 0 && g == 0 && b == 0) {
-					continue
-				}
-
-				model := mathgl.Translate3D(
-					float32(x)*UI_SPACING,
-					float32(z)*UI_SPACING,
-					float32(y)*UI_SPACING,
-				).Mul4(center)
-
-				mvp := projection.Mul4(view).Mul4(model)
-				gl.UniformMatrix4fv(uniformMVP, 1, false, (*float32)(&mvp[0]))
-				gl.Uniform3f(uniformColor, r, g, b)
-				gl.DrawArrays(gl.TRIANGLES, 0, int32(disp.voxelLen))
-			}
-		}
-	}
+	gl.UseProgram(disp.shader)
+	gl.BindVertexArray(disp.vertVAO)
+	count := disp.CubeWidth * disp.CubeLength * disp.CubeHeight
+	gl.DrawArraysInstanced(gl.TRIANGLES, 0, int32(disp.voxelLen), int32(count))
 }
 
 func (disp *Display) init() error {
@@ -136,6 +107,9 @@ func (disp *Display) init() error {
 		return err
 	}
 	var err error
+	glfw.WindowHint(glfw.ContextVersionMajor, 3)
+	glfw.WindowHint(glfw.ContextVersionMinor, 3)
+	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
 	disp.win, err = glfw.CreateWindow(UI_WIN_W, UI_WIN_H, INFO, nil, nil)
 	if err != nil {
 		return err
@@ -160,7 +134,7 @@ func (disp *Display) init() error {
 			sevStr = "note"
 		}
 		if severity == gl.DEBUG_SEVERITY_HIGH {
-			log.Fatalf("OpenGL [%s] %s", sevStr, message)
+			panic(fmt.Errorf("OpenGL [%s] %s", sevStr, message))
 		} else {
 			log.Printf("OpenGL [%s] %s", sevStr, message)
 		}
@@ -198,8 +172,6 @@ func (disp *Display) init() error {
 		action glfw.Action, mods glfw.ModifierKey) {
 		if action != glfw.Release {
 			switch key {
-			case glfw.KeyS:
-				disp.HideOff = !disp.HideOff
 			case glfw.KeyR:
 				disp.ResetView()
 			}
@@ -238,7 +210,6 @@ func (disp *Display) init() error {
 	if err != nil {
 		return err
 	}
-
 	disp.shader = gl.CreateProgram()
 	gl.AttachShader(disp.shader, vx)
 	gl.AttachShader(disp.shader, fg)
@@ -260,20 +231,46 @@ func (disp *Display) init() error {
 	gl.UseProgram(disp.shader)
 
 	// Generate and initialize the voxel model
-	bufferData := getVoxelBuffer(disp.detail)
-	gl.GenBuffers(1, &disp.voxelBuffer)
-	gl.BindBuffer(gl.ARRAY_BUFFER, disp.voxelBuffer)
-	disp.voxelLen = len(bufferData) * 3
-	gl.BufferData(gl.ARRAY_BUFFER, disp.voxelLen*4, gl.Ptr(&bufferData[0][0]), gl.STATIC_DRAW)
-	attribVert := uint32(gl.GetAttribLocation(disp.shader, gl.Str("voxel\x00")))
-	gl.EnableVertexAttribArray(attribVert)
-	gl.VertexAttribPointer(attribVert, 3, gl.FLOAT, false, 3*4, nil)
+	vertices := getVoxelBuffer(0)
+	disp.voxelLen = len(vertices)
+
+	gl.CreateVertexArrays(1, &disp.vertVAO)
+	gl.BindVertexArray(disp.vertVAO)
+	gl.CreateBuffers(1, &disp.vertVBO)
+	gl.BindBuffer(gl.ARRAY_BUFFER, disp.vertVBO)
+	gl.BufferData(gl.ARRAY_BUFFER, len(vertices)*4*3, gl.Ptr(&vertices[0][0]), gl.STATIC_DRAW)
+	vertAttrib := uint32(gl.GetAttribLocation(disp.shader, gl.Str("vert\x00")))
+	gl.EnableVertexAttribArray(vertAttrib)
+	gl.VertexAttribPointer(vertAttrib, 3, gl.FLOAT, false, 3*4, nil)
+	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
+
+	translations := getTranslationsBuffer(disp.CubeWidth, disp.CubeHeight, disp.CubeLength)
+	gl.CreateBuffers(1, &disp.translationVBO)
+	gl.BindBuffer(gl.ARRAY_BUFFER, disp.translationVBO)
+	gl.BufferData(gl.ARRAY_BUFFER, len(translations)*4*3, gl.Ptr(&translations[0][0]), gl.STATIC_DRAW)
+	translationAttrib := uint32(gl.GetAttribLocation(disp.shader, gl.Str("translation\x00")))
+	gl.EnableVertexAttribArray(translationAttrib)
+	gl.VertexAttribPointer(translationAttrib, 3, gl.FLOAT, false, 3*4, nil)
+	gl.VertexAttribDivisor(translationAttrib, 1)
+	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
+
+	colors := getInitialColorBuffer(disp.CubeWidth, disp.CubeHeight, disp.CubeLength)
+	gl.CreateBuffers(1, &disp.colorVBO)
+	gl.BindBuffer(gl.ARRAY_BUFFER, disp.colorVBO)
+	gl.BufferData(gl.ARRAY_BUFFER, len(colors)*4*3, gl.Ptr(&colors[0][0]), gl.DYNAMIC_DRAW)
+	colorAttrib := uint32(gl.GetAttribLocation(disp.shader, gl.Str("color\x00")))
+	gl.EnableVertexAttribArray(colorAttrib)
+	gl.VertexAttribPointer(colorAttrib, 3, gl.FLOAT, false, 3*4, nil)
+	gl.VertexAttribDivisor(colorAttrib, 1)
+	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
+
+	gl.BindVertexArray(0)
 
 	// Initialize the shader by setting some constant uniforms
 	gl.Uniform3f(gl.GetUniformLocation(disp.shader, gl.Str("light_color\x00")), 0.15, 0.15, 0.15)
 	lx, ly, lz := mathgl.Vec3{1, 1, 1}.Normalize().Elem()
 	gl.Uniform3f(gl.GetUniformLocation(disp.shader, gl.Str("light_vec\x00")), lx, ly, lz)
-	gl.Uniform1f(gl.GetUniformLocation(disp.shader, gl.Str("voxel_radius\x00")), 1)
+	gl.Uniform1f(gl.GetUniformLocation(disp.shader, gl.Str("radius\x00")), 1)
 
 	return nil
 }
@@ -282,8 +279,11 @@ func (disp *Display) NumVoxels() int {
 	return disp.CubeHeight * disp.CubeLength * disp.CubeWidth
 }
 
-func (disp *Display) SwapBuffers() {
-	disp.shouldSwapBuffers = true
+func (disp *Display) Show(frame []float32) {
+	select {
+	case disp.swap <- frame:
+	default:
+	}
 }
 
 func (disp *Display) ResetView() {
@@ -362,32 +362,68 @@ func getVoxelBuffer(detail int) []mathgl.Vec3 {
 	return tessellate(bufferData, detail)
 }
 
+func getTranslationsBuffer(sx, sy, sz int) []mathgl.Vec3 {
+	buf := make([]mathgl.Vec3, 0, sx*sy*sz)
+	for x := 0; x < sx; x++ {
+		for y := 0; y < sy; y++ {
+			for z := 0; z < sz; z++ {
+				buf = append(buf, mathgl.Vec3{
+					float32(x)*UI_SPACING - (UI_SPACING*float32(sx)/2 - UI_SPACING/2),
+					float32(y)*UI_SPACING - (UI_SPACING*float32(sy)/2 - UI_SPACING/2),
+					float32(z)*UI_SPACING - (UI_SPACING*float32(sx)/2 - UI_SPACING/2),
+				})
+			}
+		}
+	}
+	return buf
+}
+
+func getInitialColorBuffer(sx, sy, sz int) []mathgl.Vec3 {
+	buf := make([]mathgl.Vec3, 0, sx*sy*sz)
+	for x := 0; x < sx; x++ {
+		for y := 0; y < sy; y++ {
+			for z := 0; z < sz; z++ {
+				buf = append(buf, mathgl.Vec3{0.0, 0.4, 1.0})
+			}
+		}
+	}
+	return buf
+}
+
 const vertexShaderSource = `
-	#version 120
+	#version 330 core
 
-	uniform float voxel_radius;
-	uniform mat4 mat_mvp;
+	uniform float radius;
+	uniform mat4 view;
+	uniform mat4 projection;
 
-	attribute vec3 voxel;
-	varying vec3 frag_normal;
+	in vec3 vert;
+	in vec3 translation;
+	in vec3 color;
+
+	out vec3 fNormal;
+	out vec3 fColor;
 
 	void main() {
-		frag_normal = voxel;
-		gl_Position = mat_mvp * vec4(voxel*voxel_radius, 1.0);
+		fNormal = vert;
+		fColor = color;
+		mat4 mvp = projection * view;
+
+		gl_Position = mvp * vec4(vert*radius + translation, 1.0);
 	}
 `
 
 const fragmentShaderSource = `
-	#version 120
+	#version 330 core
 
 	uniform vec3 light_color;
 	uniform vec3 light_vec;
-	uniform vec3 color_led;
 
-	varying vec3 frag_normal;
+	in vec3 fNormal;
+	in vec3 fColor;
 
 	void main() {
-		float cosTheta = clamp(dot(frag_normal, light_vec), 0, 1);
-		gl_FragColor = vec4(color_led + light_color * cosTheta, 1.0);
+		float cosTheta = clamp(dot(fNormal, light_vec), 0, 1);
+		gl_FragColor = vec4(fColor + light_color * cosTheta, 1.0);
 	}
 `
