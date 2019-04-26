@@ -15,7 +15,7 @@ if len(sys.argv) <= 1:
 cube = ledcube.Cube()
 mod  = model.WavefrontModel(sys.argv[1], ('x', 'z', 'y'))
 
-frame = ledcube.Frame(cube.size, 3)
+frame = ledcube.Frame(cube.size)
 
 smallest_side = min(cube.size) - 1
 mod_max       = max(mod.max.x - mod.min.x, mod.max.y - mod.min.y, mod.max.z - mod.min.z)
