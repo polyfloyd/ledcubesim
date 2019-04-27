@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"math"
@@ -49,7 +50,7 @@ func NewDisplay(w, h, l int) *Display {
 	return disp
 }
 
-func (disp *Display) Run() {
+func (disp *Display) Run(ctx context.Context) {
 	runtime.LockOSThread()
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -63,6 +64,8 @@ func (disp *Display) Run() {
 			gl.BindBuffer(gl.ARRAY_BUFFER, disp.colorVBO)
 			gl.BufferSubData(gl.ARRAY_BUFFER, 0, len(f)*4, gl.Ptr(&f[0]))
 			gl.BindBuffer(gl.ARRAY_BUFFER, 0)
+		case <-ctx.Done():
+			break
 		default:
 		}
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)

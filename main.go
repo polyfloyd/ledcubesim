@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"io"
 	"os"
@@ -23,7 +24,9 @@ func main() {
 	}
 	disp := NewDisplay(x, y, z)
 
+	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
+		defer cancel()
 		buf := make([]byte, disp.NumVoxels()*3)
 		for {
 			_, err := io.ReadFull(os.Stdin, buf)
@@ -38,5 +41,5 @@ func main() {
 		}
 	}()
 
-	disp.Run()
+	disp.Run(ctx)
 }
