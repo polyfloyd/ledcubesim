@@ -82,12 +82,12 @@ func (disp *Display) render() {
 	uniformShowBlack := gl.GetUniformLocation(disp.shader, gl.Str("show_black\x00"))
 
 	projection := mathgl.Perspective(
-		UI_FOVY,
+		45.0,
 		func(w, h int) float32 {
 			return float32(w) / float32(h)
 		}(disp.win.GetSize()),
-		UI_ZNEAR,
-		UI_ZFAR,
+		1.0,
+		2048.0,
 	)
 	view := func() mathgl.Mat4 {
 		m := mathgl.Ident4()
@@ -119,7 +119,7 @@ func (disp *Display) init() error {
 	glfw.WindowHint(glfw.ContextVersionMajor, 3)
 	glfw.WindowHint(glfw.ContextVersionMinor, 3)
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
-	disp.win, err = glfw.CreateWindow(UI_WIN_W, UI_WIN_H, INFO, nil, nil)
+	disp.win, err = glfw.CreateWindow(1280, 768, "ledcubesim", nil, nil)
 	if err != nil {
 		return err
 	}
@@ -166,8 +166,8 @@ func (disp *Display) init() error {
 		mousePosLastX = x
 		mousePosLastY = y
 		if dragButtonDown {
-			disp.camRot = mathgl.QuatRotate(float32(deltaX)/UI_DRAGDIV, mathgl.Vec3{0, 1, 0}).Mul(disp.camRot)
-			disp.camRot = mathgl.QuatRotate(float32(deltaY)/UI_DRAGDIV, mathgl.Vec3{1, 0, 0}).Mul(disp.camRot)
+			disp.camRot = mathgl.QuatRotate(float32(deltaX)/240, mathgl.Vec3{0, 1, 0}).Mul(disp.camRot)
+			disp.camRot = mathgl.QuatRotate(float32(deltaY)/240, mathgl.Vec3{1, 0, 0}).Mul(disp.camRot)
 		}
 	})
 	disp.win.SetMouseButtonCallback(func(_ *glfw.Window, button glfw.MouseButton,
@@ -175,7 +175,7 @@ func (disp *Display) init() error {
 		dragButtonDown = action == glfw.Press && button == glfw.MouseButtonLeft
 	})
 	disp.win.SetScrollCallback(func(_ *glfw.Window, dx, dy float64) {
-		disp.camZoom += float32(dy) * UI_ZOOMACCEL
+		disp.camZoom += float32(dy) * 12.0
 	})
 	disp.win.SetKeyCallback(func(_ *glfw.Window, key glfw.Key, scancode int,
 		action glfw.Action, mods glfw.ModifierKey) {
@@ -299,7 +299,15 @@ func (disp *Display) Show(frame []float32) {
 
 func (disp *Display) ResetView() {
 	disp.camRot = mathgl.QuatIdent()
-	disp.camZoom = -160
+	disp.camRot = mathgl.QuatRotate(.5, mathgl.Vec3{0, -1, 0}).Mul(disp.camRot)
+	disp.camRot = mathgl.QuatRotate(.5, mathgl.Vec3{1, 0, 0}).Mul(disp.camRot)
+	maxDim := 0
+	for _, dim := range []int{disp.CubeHeight, disp.CubeLength, disp.CubeWidth} {
+		if dim > maxDim {
+			maxDim = dim
+		}
+	}
+	disp.camZoom = float32(maxDim) * -12
 }
 
 func (disp *Display) ToggleShowBlack() {
@@ -378,14 +386,15 @@ func getVoxelBuffer(detail int) []mathgl.Vec3 {
 }
 
 func getTranslationsBuffer(sx, sy, sz int) []mathgl.Vec3 {
+	const spacing = 8.0
 	buf := make([]mathgl.Vec3, 0, sx*sy*sz)
 	for x := 0; x < sx; x++ {
 		for y := 0; y < sy; y++ {
 			for z := 0; z < sz; z++ {
 				buf = append(buf, mathgl.Vec3{
-					float32(x)*UI_SPACING - (UI_SPACING*float32(sx)/2 - UI_SPACING/2),
-					float32(y)*UI_SPACING - (UI_SPACING*float32(sy)/2 - UI_SPACING/2),
-					float32(z)*UI_SPACING - (UI_SPACING*float32(sx)/2 - UI_SPACING/2),
+					spacing*float32(x) - (spacing*float32(sx)*.5 - spacing*.5),
+					spacing*float32(y) - (spacing*float32(sy)*.5 - spacing*.5),
+					spacing*float32(z) - (spacing*float32(sx)*.5 - spacing*.5),
 				})
 			}
 		}
