@@ -268,7 +268,7 @@ func (disp *Display) init() error {
 	gl.VertexAttribDivisor(translationAttrib, 1)
 	gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 
-	colors := getInitialColorBuffer(disp.CubeWidth, disp.CubeHeight, disp.CubeLength)
+	colors := make([]mathgl.Vec3, disp.CubeWidth*disp.CubeHeight*disp.CubeLength)
 	gl.CreateBuffers(1, &disp.colorVBO)
 	gl.BindBuffer(gl.ARRAY_BUFFER, disp.colorVBO)
 	gl.BufferData(gl.ARRAY_BUFFER, len(colors)*4*3, gl.Ptr(&colors[0][0]), gl.DYNAMIC_DRAW)
@@ -399,18 +399,6 @@ func getTranslationsBuffer(sx, sy, sz int) []mathgl.Vec3 {
 					spacing*float32(y) - (spacing*float32(sy)*.5 - spacing*.5),
 					spacing*float32(z) - (spacing*float32(sx)*.5 - spacing*.5),
 				})
-			}
-		}
-	}
-	return buf
-}
-
-func getInitialColorBuffer(sx, sy, sz int) []mathgl.Vec3 {
-	buf := make([]mathgl.Vec3, 0, sx*sy*sz)
-	for x := 0; x < sx; x++ {
-		for y := 0; y < sy; y++ {
-			for z := 0; z < sz; z++ {
-				buf = append(buf, mathgl.Vec3{0.0, 0.4, 1.0})
 			}
 		}
 	}
