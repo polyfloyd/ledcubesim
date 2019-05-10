@@ -28,6 +28,7 @@ type Display struct {
 
 	swap      chan []float32
 	showBlack bool
+	spin      bool
 
 	voxelLen int
 	shader   uint32
@@ -83,6 +84,15 @@ func (disp *Display) render() {
 	uniformView := gl.GetUniformLocation(disp.shader, gl.Str("view\x00"))
 	uniformProjection := gl.GetUniformLocation(disp.shader, gl.Str("projection\x00"))
 	uniformShowBlack := gl.GetUniformLocation(disp.shader, gl.Str("show_black\x00"))
+
+	if disp.spin {
+		const delta = 0.05
+		disp.camRot = mathgl.QuatRotate(-3.14/4, mathgl.Vec3{1, 0, 0}.Normalize()).Mul(disp.camRot)
+		disp.camRot = mathgl.QuatRotate(-3.14/4, mathgl.Vec3{0, 1, 0}.Normalize()).Mul(disp.camRot)
+		disp.camRot = mathgl.QuatRotate(delta, mathgl.Vec3{0, 1, 0}.Normalize()).Mul(disp.camRot)
+		disp.camRot = mathgl.QuatRotate(3.14/4, mathgl.Vec3{0, 1, 0}.Normalize()).Mul(disp.camRot)
+		disp.camRot = mathgl.QuatRotate(3.14/4, mathgl.Vec3{1, 0, 0}.Normalize()).Mul(disp.camRot)
+	}
 
 	projection := mathgl.Perspective(
 		45.0,
@@ -176,6 +186,7 @@ func (disp *Display) init() error {
 	disp.win.SetMouseButtonCallback(func(_ *glfw.Window, button glfw.MouseButton,
 		action glfw.Action, mods glfw.ModifierKey) {
 		dragButtonDown = action == glfw.Press && button == glfw.MouseButtonLeft
+		disp.spin = false
 	})
 	disp.win.SetScrollCallback(func(_ *glfw.Window, dx, dy float64) {
 		disp.camZoom += float32(dy) * 12.0
@@ -188,6 +199,8 @@ func (disp *Display) init() error {
 				disp.ResetView()
 			case glfw.KeyS:
 				disp.ToggleShowBlack()
+			case glfw.KeyT:
+				disp.ToggleSpin()
 			}
 		}
 	})
@@ -302,8 +315,9 @@ func (disp *Display) Show(frame []float32) {
 
 func (disp *Display) ResetView() {
 	disp.camRot = mathgl.QuatIdent()
-	disp.camRot = mathgl.QuatRotate(.5, mathgl.Vec3{0, -1, 0}).Mul(disp.camRot)
-	disp.camRot = mathgl.QuatRotate(.5, mathgl.Vec3{1, 0, 0}).Mul(disp.camRot)
+	disp.camRot = mathgl.QuatRotate(3.14/4, mathgl.Vec3{0, 1, 0}.Normalize()).Mul(disp.camRot)
+	disp.camRot = mathgl.QuatRotate(3.14/4, mathgl.Vec3{1, 0, 0}.Normalize()).Mul(disp.camRot)
+
 	maxDim := 0
 	for _, dim := range []int{disp.CubeHeight, disp.CubeLength, disp.CubeWidth} {
 		if dim > maxDim {
@@ -311,10 +325,15 @@ func (disp *Display) ResetView() {
 		}
 	}
 	disp.camZoom = float32(maxDim) * -12
+	disp.spin = false
 }
 
 func (disp *Display) ToggleShowBlack() {
 	disp.showBlack = !disp.showBlack
+}
+
+func (disp *Display) ToggleSpin() {
+	disp.spin = !disp.spin
 }
 
 func getVoxelBuffer(detail int) []mathgl.Vec3 {

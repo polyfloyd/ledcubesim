@@ -35,6 +35,7 @@ Usage of ledcubesim:
 * Scrolling with the mouse adjust the zoom.
 * Pressing R on the keyboard will reset the view to its initial condition.
 * Pressing S on the keyboard will toggle the visibility of black (off) voxels.
+* Pressing T on the keyboard will toggle spinning of the view
 
 ## Input
 Write `width * height * length * 3` bytes to stdin. Colors are encoded as
