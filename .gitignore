@@ -1,8 +1,3 @@
-*~
 *.pyc
-*.swp
-*.swo
 __pycache__
-/bin
 /ledcubesim
-/lib

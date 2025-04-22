@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"log"
 	"math"
@@ -17,6 +18,12 @@ import (
 	glfw "github.com/go-gl/glfw/v3.2/glfw"
 	mathgl "github.com/go-gl/mathgl/mgl32"
 )
+
+//go:embed voxel.vert.glsl
+var vertexShaderSource string
+
+//go:embed voxel.frag.glsl
+var fragmentShaderSource string
 
 type Display struct {
 	CubeHeight int
@@ -53,12 +60,12 @@ func NewDisplay(w, h, l int) *Display {
 
 func (disp *Display) Run(ctx context.Context) {
 	runtime.LockOSThread()
-	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	if err := disp.init(); err != nil {
 		panic(err)
 	}
 
+outer:
 	for !disp.win.ShouldClose() {
 		select {
 		case f := <-disp.swap:
@@ -66,7 +73,7 @@ func (disp *Display) Run(ctx context.Context) {
 			gl.BufferSubData(gl.ARRAY_BUFFER, 0, len(f)*4, gl.Ptr(&f[0]))
 			gl.BindBuffer(gl.ARRAY_BUFFER, 0)
 		case <-ctx.Done():
-			break
+			break outer
 		default:
 		}
 		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -410,9 +417,9 @@ func getVoxelBuffer(detail int) []mathgl.Vec3 {
 func getTranslationsBuffer(sx, sy, sz int) []mathgl.Vec3 {
 	const spacing = 8.0
 	buf := make([]mathgl.Vec3, 0, sx*sy*sz)
-	for x := 0; x < sx; x++ {
-		for y := 0; y < sy; y++ {
-			for z := 0; z < sz; z++ {
+	for x := range sx {
+		for y := range sy {
+			for z := range sz {
 				buf = append(buf, mathgl.Vec3{
 					spacing*float32(x) - (spacing*float32(sx)*.5 - spacing*.5),
 					spacing*float32(y) - (spacing*float32(sy)*.5 - spacing*.5),
@@ -423,45 +430,3 @@ func getTranslationsBuffer(sx, sy, sz int) []mathgl.Vec3 {
 	}
 	return buf
 }
-
-const vertexShaderSource = `
-	#version 330 core
-
-	uniform float radius;
-	uniform mat4 view;
-	uniform mat4 projection;
-
-	in vec3 vert;
-	in vec3 translation;
-	in vec3 color;
-
-	out vec3 fNormal;
-	out vec3 fColor;
-
-	void main() {
-		fNormal = vert;
-		fColor = color;
-		mat4 mvp = projection * view;
-
-		gl_Position = mvp * vec4(vert*radius + translation, 1.0);
-	}
-`
-
-const fragmentShaderSource = `
-	#version 330 core
-
-	uniform vec3 light_color;
-	uniform vec3 light_vec;
-	uniform float show_black;
-
-	in vec3 fNormal;
-	in vec3 fColor;
-
-	void main() {
-		if (fColor.r + fColor.g + fColor.b + show_black < 1e-18) {
-			discard;
-		}
-		float cosTheta = clamp(dot(fNormal, light_vec), 0, 1);
-		gl_FragColor = vec4(fColor + light_color * cosTheta, 1.0);
-	}
-`
